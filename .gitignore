@@ -1,0 +1,63 @@
+# ─── Dependências ─────────────────────────────────────────────
+node_modules/
+.npm/
+.pnpm-store/
+
+# ─── Builds e artefatos ───────────────────────────────────────
+dist/
+dist-ssr/
+build/
+out/
+*.tsbuildinfo
+.vite/
+.cache/
+
+# Cliente Prisma gerado (regenerado por `prisma generate`)
+backend/src/generated/
+
+# ─── Testes ───────────────────────────────────────────────────
+coverage/
+.nyc_output/
+junit.xml
+
+# ─── Variáveis de ambiente (secrets) ──────────────────────────
+# Todos os .env são ignorados; os modelos *.example são versionados.
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# ─── Logs ─────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ─── Temporários ──────────────────────────────────────────────
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+*~
+
+# ─── Docker (overrides locais, volumes em bind) ───────────────
+docker-compose.override.yml
+compose.override.yml
+.docker-data/
+
+# ─── Sistema operacional ──────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+.directory
+
+# ─── IDEs ─────────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.history/
