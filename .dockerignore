@@ -1,0 +1,15 @@
+# Contexto de build = raiz do monorepo. Envia apenas o necessário.
+.git
+.github
+docs
+**/node_modules
+**/dist
+**/coverage
+**/src/generated
+**/*.log
+**/*.tsbuildinfo
+.env
+.env.*
+!.env.example
+**/.vscode
+**/.idea
