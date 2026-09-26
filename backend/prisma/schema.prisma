@@ -1,0 +1,16 @@
+// Schema Prisma do Tribu.io.
+//
+// Nesta fase o Prisma é usado apenas para conectar ao PostgreSQL (health
+// check). Os modelos de domínio e as migrations serão adicionados conforme o
+// modelo de dados (docs/relatorio-fase1.md §4).
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "cjs"
+  importFileExtension = ""
+}
+
+datasource db {
+  provider = "postgresql"
+}
