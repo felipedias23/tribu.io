@@ -15,6 +15,9 @@ const envSchema = z
     JWT_SECRET: z
       .string({ error: 'obrigatória' })
       .min(32, 'deve ter pelo menos 32 caracteres'),
+    // Número de proxies à frente da API (nginx = 1). O IP do cliente, usado no
+    // rate limiting, é o que o último proxy acrescentou ao X-Forwarded-For.
+    TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
     // Cookie de sessão só por HTTPS. Padrão: ativo em produção.
     COOKIE_SECURE: z.enum(['true', 'false']).optional(),
   })

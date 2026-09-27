@@ -11,6 +11,7 @@ describe('validateEnv', () => {
       ...required,
       NODE_ENV: 'development',
       PORT: 3000,
+      TRUST_PROXY_HOPS: 1,
       COOKIE_SECURE: false,
     });
   });

@@ -1,9 +1,11 @@
 import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { validationExceptionFactory } from './common/validation/validation-exception.factory';
+import type { Env } from './config/env.validation';
 
 export const API_PREFIX = 'api/v1';
 export const DOCS_PATH = 'api/docs';
@@ -13,10 +15,11 @@ export function configureApp(app: NestExpressApplication): void {
   app.setGlobalPrefix(API_PREFIX);
   app.enableShutdownHooks();
 
-  // O nginx (rede privada do Docker) fica à frente da API: o IP real do
-  // cliente, usado pelo rate limiting, vem de X-Forwarded-For. Só se confia
-  // no cabeçalho quando o pedido chega de um endereço local ou privado.
-  app.set('trust proxy', 'loopback, uniquelocal');
+  // O nginx fica à frente da API: o IP do cliente, usado pelo rate limiting,
+  // é o que ele acrescenta ao X-Forwarded-For. Confiar num número exato de
+  // proxies impede que o cliente falsifique o IP enviando o próprio cabeçalho.
+  const config = app.get<ConfigService<Env, true>>(ConfigService);
+  app.set('trust proxy', config.get('TRUST_PROXY_HOPS', { infer: true }));
   app.use(cookieParser());
 
   // Sem CORS: o frontend acede à API pela mesma origem (proxy nginx/Vite).
