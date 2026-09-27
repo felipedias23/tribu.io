@@ -1,10 +1,12 @@
 import { Link, useLocation, useNavigate } from 'react-router';
 import { TextField } from '../shared/components/TextField';
+import { useDocumentTitle } from '../shared/hooks/useDocumentTitle';
 import { useAuth } from './AuthContext';
 import styles from './AuthForm.module.css';
 import { useFormSubmit } from './useFormSubmit';
 
 export function LoginPage() {
+  useDocumentTitle('Entrar');
   const { login } = useAuth();
   const navigate = useNavigate();
   const from = (useLocation().state as { from?: string } | null)?.from ?? '/';

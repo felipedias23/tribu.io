@@ -1,10 +1,12 @@
 import { Link, useNavigate } from 'react-router';
 import { TextField } from '../shared/components/TextField';
+import { useDocumentTitle } from '../shared/hooks/useDocumentTitle';
 import { useAuth } from './AuthContext';
 import styles from './AuthForm.module.css';
 import { useFormSubmit } from './useFormSubmit';
 
 export function RegisterPage() {
+  useDocumentTitle('Registar escritório');
   const { register } = useAuth();
   const navigate = useNavigate();
 

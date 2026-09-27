@@ -10,7 +10,7 @@ export function RequireAuth() {
     return <p role="status">A verificar a sessão…</p>;
   }
   if (status === 'anonymous') {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   }
   return <Outlet />;
 }
