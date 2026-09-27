@@ -32,6 +32,7 @@ erDiagram
         string name
         string cnpj UK "opcional"
         datetime createdAt
+        datetime updatedAt
     }
     User {
         uuid id PK
@@ -42,6 +43,7 @@ erDiagram
         enum role "ADMIN | ANALYST | VIEWER"
         int tokenVersion "invalida sessões no logout"
         datetime createdAt
+        datetime updatedAt
     }
     Company {
         uuid id PK

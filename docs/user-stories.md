@@ -36,9 +36,9 @@ Personas ([definição do produto §3](product-definition.md#3-público-alvo)):
 **Como** sócio de um escritório de contabilidade, **quero** criar uma conta para o meu escritório **para** começar a usar o Tribu.io.
 
 - [ ] O registo cria o escritório e o primeiro utilizador com papel `ADMIN`.
-- [ ] A password é guardada apenas em hash (argon2).
-- [ ] Email duplicado ou dados inválidos devolvem erro claro por campo.
-- [ ] Após o registo, o utilizador fica autenticado.
+- [ ] A password tem 8 a 128 caracteres e é guardada apenas em hash (argon2id) — decisão D11.
+- [ ] Dados inválidos devolvem erro claro por campo; email já registado devolve 409 — decisão D12.
+- [ ] Após o registo, o utilizador fica autenticado — decisão D12.
 
 ### US02 — Entrar no sistema
 
@@ -70,9 +70,10 @@ Personas ([definição do produto §3](product-definition.md#3-público-alvo)):
 
 **Como** sócio, **quero** convidar colegas e definir o que cada um pode fazer **para** controlar o acesso aos dados.
 
-- [ ] Só `ADMIN` cria e altera utilizadores.
-- [ ] `ANALYST` executa análises e simulações; `VIEWER` só consulta.
+- [ ] Só `ADMIN` altera utilizadores (nome e papel) — decisão D13.
+- [ ] O escritório nunca fica sem `ADMIN`.
 - [ ] Ações proibidas pelo papel devolvem 403.
+- [ ] As permissões de `ANALYST` e `VIEWER` em cada funcionalidade são definidas com essa funcionalidade.
 
 ## Empresas
 
