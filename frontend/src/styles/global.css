@@ -9,6 +9,11 @@
   --space-2: 0.5rem;
   --space-3: 0.75rem;
   --space-4: 1rem;
+  --space-6: 1.5rem;
+
+  --color-surface: #ffffff;
+  --color-border: #d4dae3;
+  --radius: 8px;
 
   --font-size-sm: 0.875rem;
 
