@@ -37,7 +37,8 @@ jobs:
     env:
       DATABASE_URL: postgresql://tribu:ci-ephemeral@localhost:5432/tribu_test?schema=public
       NODE_ENV: test
-      # Password das contas fictícias do seed no banco efêmero do CI.
+      # Valores efêmeros do CI, não são secrets.
+      JWT_SECRET: ci-ephemeral-jwt-secret-with-32-characters
       SEED_PASSWORD: ci-ephemeral-seed
     steps:
       - uses: actions/checkout@v7

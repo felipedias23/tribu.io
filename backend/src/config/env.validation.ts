@@ -4,13 +4,27 @@ export const databaseUrlSchema = z
   .string({ error: 'obrigatória' })
   .regex(/^postgres(ql)?:\/\//, 'deve ser uma URL postgresql://');
 
-const envSchema = z.object({
-  NODE_ENV: z
-    .enum(['development', 'test', 'production'])
-    .default('development'),
-  PORT: z.coerce.number().int().min(1).max(65535).default(3000),
-  DATABASE_URL: databaseUrlSchema,
-});
+const envSchema = z
+  .object({
+    NODE_ENV: z
+      .enum(['development', 'test', 'production'])
+      .default('development'),
+    PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+    DATABASE_URL: databaseUrlSchema,
+    // Assina os JWT de sessão (HS256). Trocar o valor termina todas as sessões.
+    JWT_SECRET: z
+      .string({ error: 'obrigatória' })
+      .min(32, 'deve ter pelo menos 32 caracteres'),
+    // Cookie de sessão só por HTTPS. Padrão: ativo em produção.
+    COOKIE_SECURE: z.enum(['true', 'false']).optional(),
+  })
+  .transform(({ COOKIE_SECURE, ...env }) => ({
+    ...env,
+    COOKIE_SECURE:
+      COOKIE_SECURE === undefined
+        ? env.NODE_ENV === 'production'
+        : COOKIE_SECURE === 'true',
+  }));
 
 export type Env = z.infer<typeof envSchema>;
 
