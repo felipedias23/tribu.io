@@ -10,8 +10,13 @@ try {
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
+  migrations: {
+    path: 'prisma/migrations',
+    // Seed compilado pelo `nest build` (ver `npm run db:seed`).
+    seed: 'node dist/prisma/seed.js',
+  },
   datasource: {
-    // `prisma generate` não precisa de conexão.
+    // `prisma generate` não precisa de conexão; migrate/seed falham se ausente.
     url: process.env.DATABASE_URL ?? '',
   },
 });
