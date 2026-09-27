@@ -7,6 +7,7 @@ import type { Env } from '../config/env.validation';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { AuthGuard } from './guards/auth.guard';
+import { RolesGuard } from './guards/roles.guard';
 import { SESSION_TTL_SECONDS } from './session-cookie';
 import { SessionService } from './session.service';
 
@@ -31,7 +32,9 @@ export const AUTH_RATE_LIMIT = 10;
   providers: [
     AuthService,
     SessionService,
+    // Ordem importa: primeiro autentica, depois verifica o papel.
     { provide: APP_GUARD, useClass: AuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
 export class AuthModule {}
