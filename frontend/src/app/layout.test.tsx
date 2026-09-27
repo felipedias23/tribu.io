@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -22,7 +22,7 @@ describe('layout autenticado', () => {
     expect(await screen.findByRole('heading', { name: 'Tax Radar' })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/radar');
     expect(mainNav()).toBeInTheDocument();
-    expect(document.title).toBe('Tax Radar · Tribu.io');
+    await waitFor(() => expect(document.title).toBe('Tax Radar · Tribu.io'));
   });
 
   it('mostra as cinco secções, com a atual marcada por aria-current', async () => {
@@ -43,7 +43,7 @@ describe('layout autenticado', () => {
 
     expect(await screen.findByRole('heading', { name: 'Empresas' })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/companies');
-    expect(document.title).toBe('Empresas · Tribu.io');
+    await waitFor(() => expect(document.title).toBe('Empresas · Tribu.io'));
   });
 
   it('as secções provisórias estão identificadas como "Em construção"', async () => {
@@ -74,7 +74,7 @@ describe('layout autenticado', () => {
 
     expect(await screen.findByRole('heading', { name: 'Página não encontrada' })).toBeInTheDocument();
     expect(mainNav()).toBeInTheDocument();
-    expect(document.title).toBe('Página não encontrada · Tribu.io');
+    await waitFor(() => expect(document.title).toBe('Página não encontrada · Tribu.io'));
   });
 
   it('o link "Saltar para o conteúdo" aponta para a área principal', async () => {

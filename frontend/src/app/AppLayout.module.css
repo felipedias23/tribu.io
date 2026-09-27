@@ -107,14 +107,17 @@
   overflow-y: auto;
   transform: translateX(-100%);
   visibility: hidden;
+  /* Ao fechar, só fica invisível no fim da animação. */
   transition:
     transform 0.2s ease,
-    visibility 0.2s;
+    visibility 0s linear 0.2s;
 }
 
+/* Ao abrir, fica visível de imediato para poder receber o foco. */
 .nav[data-open='true'] {
   transform: none;
   visibility: visible;
+  transition: transform 0.2s ease;
 }
 
 .backdrop {
