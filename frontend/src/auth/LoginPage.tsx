@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 import { TextField } from '../shared/components/TextField';
 import { useDocumentTitle } from '../shared/hooks/useDocumentTitle';
 import { useAuth } from './AuthContext';
@@ -7,19 +7,24 @@ import { useFormSubmit } from './useFormSubmit';
 
 export function LoginPage() {
   useDocumentTitle('Entrar');
-  const { login } = useAuth();
-  const navigate = useNavigate();
-  const from = (useLocation().state as { from?: string } | null)?.from ?? '/';
+  const auth = useAuth();
+  const { login } = auth;
+  const sessionExpired = auth.status === 'anonymous' && auth.sessionExpired;
 
   const { submitting, onSubmit, formError, fieldErrors } = useFormSubmit(async (form) => {
+    // O AuthLayout redireciona assim que a sessão fica ativa.
     await login({ email: String(form.get('email')), password: String(form.get('password')) });
-    navigate(from, { replace: true });
   });
 
   return (
     <>
       <h1 className={styles.title}>Entrar</h1>
       <form className={styles.form} onSubmit={onSubmit} noValidate>
+        {sessionExpired && !formError && (
+          <p role="status" className={styles.notice}>
+            A sua sessão expirou. Entre novamente para continuar.
+          </p>
+        )}
         {formError && (
           <p role="alert" className={styles.alert}>
             {formError}
