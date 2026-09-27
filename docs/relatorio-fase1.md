@@ -1,6 +1,6 @@
 # Relatório Técnico — Fase 1 (Análise e Arquitetura)
 
-> Status: **aprovado** em 2026-09-26.
+> Status: **aprovado** em 2026-09-26. Decisões D10–D14 aprovadas em 2026-09-27 (autenticação, semana 2).
 > Fontes: [product-definition.md](product-definition.md), [etapa01.md](etapa01.md), [REGRAS.md](REGRAS.md), [CLAUDE.md](CLAUDE.md).
 
 ## 1. Estado inicial
@@ -20,8 +20,13 @@
 | D5 | Onboarding | Registo público cria `AccountingFirm` + primeiro `ADMIN` (exigência do REGRAS.md) |
 | D6 | Entidades | Criar `ImportBatch`; `AnalysisInput` vira `inputSnapshot` (JSONB) em `Analysis` |
 | D7 | Sessão | JWT em cookie httpOnly, `SameSite=Strict`, ~8h, sem refresh token; logout invalida via `tokenVersion` |
-| D8 | Deploy público | A decidir até a semana 2 (candidatos: Render, Railway) |
+| D8 | Deploy público | Origem única: o mesmo domínio serve o frontend e faz proxy de `/api` (exigido por D7). Fornecedor a decidir na semana 3 (candidatos: Render, Railway) |
 | D9 | Documentação | Especificações versionadas em `docs/` em Markdown |
+| D10 | Autenticação (semana 2) | `@nestjs/jwt` com guard próprio, sem Passport; tenant e papel lidos da BD a cada pedido (JWT só com `sub` e `tv`) |
+| D11 | Password | 8 a 128 caracteres, sem regras de composição (NIST 800-63B) |
+| D12 | Registo | 409 para email já registado; o registo já inicia sessão |
+| D13 | Papéis | Só `ADMIN` altera utilizadores; o escritório nunca fica sem `ADMIN`. Restantes permissões definidas com cada funcionalidade |
+| D14 | Isolamento na semana 2 | `GET /users` e `PATCH /users/:id` servem de recurso para os testes A/B |
 | — | Banco | PostgreSQL + Prisma (justificativa em ADR na semana 1) |
 | — | Forma de trabalho | Projeto individual; PRs revistos pelo professor; Conventional Commits |
 
@@ -51,13 +56,13 @@ Módulos: `common`, `config`, `prisma`, `auth`, `users`, `accounting-firms`, `co
 - Controllers: validação de DTO, autorização, delegação.
 - Services: orquestração; recebem sempre `tenantId`.
 - Tax Engine e classificador do Radar: funções puras (sem I/O, sem Nest/Prisma).
-- Dependências: `@nestjs/config` + `zod`, `class-validator`, `@nestjs/swagger`, `@nestjs/jwt`/`passport-jwt`, `argon2`, `@nestjs/throttler`, `helmet`, `cookie-parser`, `nestjs-pino`, `exceljs`, `csv-parse`, `supertest` (dev).
+- Dependências: `@nestjs/config` + `zod`, `class-validator`, `@nestjs/swagger`, `@nestjs/jwt` (sem `passport-jwt`, D10), `argon2`, `@nestjs/throttler`, `helmet`, `cookie-parser`, `nestjs-pino`, `exceljs`, `csv-parse`, `supertest` (dev).
 
 ### 3.3 Multi-tenancy
 
 Schema compartilhado com `accountingFirmId` em toda entidade do tenant. Isolamento em 4 camadas:
 
-1. `tenantId` vem **apenas** do JWT (`@CurrentTenant()`), nunca do request.
+1. `tenantId` vem **apenas** da sessão autenticada (`@CurrentTenant()`, tipo `TenantId`), nunca do request. O guard identifica o utilizador pelo JWT e lê o tenant na BD (D10).
 2. Todo acesso filtra por `{ id, accountingFirmId }`; recurso de outro tenant → **404**.
 3. FKs compostas `(companyId, accountingFirmId)` → `Company(id, accountingFirmId)` impedem referências cruzadas no próprio banco.
 4. Testes e2e com dois escritórios para cada recurso.
