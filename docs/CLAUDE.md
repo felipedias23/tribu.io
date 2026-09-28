@@ -75,4 +75,4 @@ Uma funcionalidade só é considerada concluída se:
 - **Iniciar ambiente:** `docker compose up -d`
 - **Backend (NestJS):** `npm run start:dev` | `npm run test`
 - **Frontend (Vite):** `npm run dev` | `npm run test`
-- **Banco de Dados (Prisma):** `npx prisma migrate dev` | `npx prisma studio`
+- **Banco de Dados (Prisma, a partir de `backend/`):** `npm run db:migrate:dev -- --name <nome>` seguido de `npm run prisma:generate` | `npm run db:seed` | `npx prisma studio`. Detalhes em [banco-de-dados.md](banco-de-dados.md#migrations).

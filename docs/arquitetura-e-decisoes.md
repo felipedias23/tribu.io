@@ -1,6 +1,6 @@
 # Relatório Técnico — Fase 1 (Análise e Arquitetura)
 
-> Status: **aprovado** em 2026-09-26. Decisões D10–D14 aprovadas em 2026-09-27 (autenticação, semana 2). Decisões D15–D20 aprovadas em 2026-09-28 (auditoria de segurança, [seguranca.md](seguranca.md)).
+> Status: **aprovado** em 2026-09-26. Decisões D10–D14 aprovadas em 2026-09-27 (autenticação, semana 2). Decisões D15–D20 aprovadas em 2026-09-28 (auditoria de segurança, [seguranca.md](seguranca.md)). D21, aprovada em 2026-09-27 com o layout base, registada em 2026-09-28.
 > Fontes: [definicao-do-produto.md](definicao-do-produto.md), [instrucoes-fase-analise.md](instrucoes-fase-analise.md), [regras-academicas.md](regras-academicas.md), [CLAUDE.md](CLAUDE.md).
 
 ## 1. Estado inicial
@@ -33,7 +33,8 @@
 | D18 | Papéis do banco | Antes do deploy: papel da API sem superuser nem DDL; migrations com papel próprio |
 | D19 | Ambiente de produção | Com `NODE_ENV=production`, a API não arranca com valores de exemplo (`change-me…`) nem com `COOKIE_SECURE=false` |
 | D20 | Company e TaxProfile (semana 3) | Leitura para todos os papéis; criar/editar Company e TaxProfile para `ADMIN` e `ANALYST`; `VIEWER` só lê; sem `DELETE` no MVP. Campos do TaxProfile anuláveis para distinguir ausente de zero |
-| — | Banco | PostgreSQL + Prisma (justificativa em ADR na semana 1) |
+| D21 | Navegação por papel | Todas as secções aparecem para todos os papéis; cada secção recebe restrição quando a regra da sua funcionalidade for aprovada, protegida também na rota e na API (esconder no frontend é só conveniência, S24) |
+| — | Banco | PostgreSQL + Prisma ([ADR 0001](adr/0001-postgresql-prisma.md)) |
 | — | Forma de trabalho | Projeto individual; PRs revistos pelo professor; Conventional Commits |
 
 ## 3. Arquitetura
@@ -146,7 +147,7 @@ Erros em formato padronizado com detalhes por campo, exibidos de forma clara no 
 
 ## 6. Frontend
 
-React Router, TanStack Query, `AuthContext`, CSS Modules, layout **responsivo mobile-first** (Radar em cartões no telemóvel). Testes com Vitest, Testing Library e MSW.
+React Router, TanStack Query (entra com o primeiro módulo de negócio), `AuthContext`, CSS Modules, layout **responsivo mobile-first** (Radar em cartões no telemóvel). Testes com Vitest, Testing Library e MSW.
 
 Rotas: `/login`, `/register`, `/radar` (inicial), `/companies`, `/companies/:id`, `/analyses/:id`, `/companies/:id/simulations/new`, `/simulations/:id`, `/imports`, `/imports/new`, `/settings/*`, `/audit`.
 
@@ -182,3 +183,4 @@ Se houver tempo: análise da carteira em lote, tela de auditoria, gestão de usu
 | Vazamento entre tenants | Defesa em 4 camadas + testes e2e |
 | Prazo de 8 semanas | Escopo priorizado; deploy antecipado |
 | Upload malicioso | Limites de tamanho/linhas, parsers seguros |
+
