@@ -54,14 +54,14 @@ Enquanto um mecanismo está pendente, a regra correspondente é verificada na re
 
 - **S7.** Toda tabela do tenant, incluindo tabelas filhas, tem `accounting_firm_id uuid NOT NULL`, um índice que começa por essa coluna e, se puder ser pai, `UNIQUE (id, accounting_firm_id)`.
 - **S8.** Toda FK entre tabelas do tenant é composta: `(x_id, accounting_firm_id) → x(id, accounting_firm_id)`.
-- **S9.** Toda unicidade de negócio dentro do tenant inclui `accounting_firm_id` (ex.: `UNIQUE (accounting_firm_id, cnpj)`). Uma unicidade global responderia 409 e revelaria dados de outro escritório.
+- **S9.** Toda unicidade de negócio dentro do tenant inclui `accounting_firm_id` (ex.: `UNIQUE (accounting_firm_id, cnpj)`). Uma unicidade global responderia 409 e revelaria dados de outro escritório. Exceções aprovadas: `users.email` é único em todo o sistema, porque o login recebe só email e password ([banco-de-dados.md](banco-de-dados.md#decisões-de-modelagem), D12), e `accounting_firms.cnpj` é único porque identifica o próprio tenant. Nesses casos o 409 é aceite, e toda rota que o possa devolver tem rate limit contra enumeração.
 - **S10.** `ON DELETE RESTRICT` por padrão. `CASCADE` só em filho que não existe sem o pai, com justificativa na migration.
 - **S11.** Tabelas globais (`tax_rules`, `tax_rule_versions`) não têm endpoint de escrita. Mudam só por migration ou seed. O `ADMIN` de um escritório não é administrador da plataforma.
 
 ### Endpoints e papéis
 
 - **S12.** Toda rota exige sessão. Um `@Public()` novo obriga a atualizar a allowlist do teste de inventário de rotas.
-- **S13.** Toda rota de escrita declara `@Roles(...)`, mesmo que liste todos os papéis. A matriz de papéis de cada funcionalidade é aprovada antes da implementação.
+- **S13.** Toda rota de escrita autenticada (sem `@Public()`) declara `@Roles(...)`, mesmo que liste todos os papéis. A matriz de papéis de cada funcionalidade é aprovada antes da implementação.
 - **S14.** Endpoints administrativos são `@Roles(Role.ADMIN)`, têm teste 403 para `ANALYST` e `VIEWER` e são auditados quando o `AuditLog` existir.
 - **S15.** O service mapeia os campos do DTO um a um; nunca `data: dto`. Listagens são paginadas com `limit` máximo (100) e ordenação por lista fechada de campos.
 - **S16.** Respostas usam `select` explícito; nunca devolvem o registo inteiro do Prisma.
@@ -99,7 +99,7 @@ Fazem parte da [Definition of Done](CLAUDE.md#5-definition-of-done-dod).
 | Catálogo do schema | e2e | Uma tabela do tenant não tem `accounting_firm_id NOT NULL`, ou uma FK entre tabelas do tenant não é composta |
 | Verificação de tenant no Prisma | unit | Uma query sobre tabela do tenant sem `accountingFirmId` (ou só dentro de `OR`), ou um `create` sem tenant, não é recusada |
 | Papéis | e2e | Um papel sem permissão não recebe 403 numa rota de escrita ou administrativa |
-| Oráculo de unicidade | e2e | Criar num escritório um registo com a mesma chave de negócio de outro escritório (ex.: CNPJ) não é aceite |
+| Oráculo de unicidade | e2e | Criar num escritório um registo com a mesma chave de negócio de outro escritório (ex.: CNPJ de uma empresa) não é aceite. Não se aplica às exceções da S9 |
 | Campos proibidos | e2e | `accountingFirmId`, `role`, `tokenVersion` ou IDs de outro recurso no corpo não são rejeitados com 400 |
 | Sessão | e2e | Token expirado, adulterado, de utilizador removido ou anterior ao logout não recebe 401 |
 | Ambiente de produção | unit | Valores de exemplo ou `COOKIE_SECURE=false` são aceites com `NODE_ENV=production` |
