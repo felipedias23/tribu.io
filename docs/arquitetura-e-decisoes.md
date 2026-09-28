@@ -69,9 +69,9 @@ Módulos: `common`, `config`, `prisma`, `auth`, `users`, `accounting-firms`, `co
 Schema compartilhado com `accountingFirmId` em toda entidade do tenant, incluindo as tabelas filhas (D15). Isolamento em 4 camadas:
 
 1. `tenantId` vem **apenas** da sessão autenticada (`@CurrentTenant()`, tipo `TenantId`), nunca do request. O guard identifica o utilizador pelo JWT e lê o tenant na BD (D10).
-2. Todo acesso filtra por `{ id, accountingFirmId }`; recurso de outro tenant → **404**. Uma Client Extension do Prisma recusa queries sobre tabelas do tenant sem esse filtro (D16).
+2. Todo acesso filtra por `{ id, accountingFirmId }`; recurso de outro tenant → **404**. Uma Client Extension do Prisma recusa queries sobre tabelas do tenant sem esse filtro (D16; pendente, semana 3).
 3. FKs compostas `(companyId, accountingFirmId)` → `Company(id, accountingFirmId)` impedem referências cruzadas no próprio banco.
-4. Testes e2e com dois escritórios para cada recurso, mais inventário de rotas e catálogo do schema que obrigam cada rota e tabela nova a ter essa cobertura (D17).
+4. Testes e2e com dois escritórios para cada recurso, mais inventário de rotas e catálogo do schema que obrigam cada rota e tabela nova a ter essa cobertura (D17; pendente, semana 3). O estado de cada mecanismo está em [seguranca.md](seguranca.md#estado-de-implementação).
 
 RLS do PostgreSQL fica como endurecimento futuro, com gatilhos definidos em [seguranca.md](seguranca.md#endurecimento-futuro).
 
@@ -163,7 +163,7 @@ Rotas: `/login`, `/register`, `/radar` (inicial), `/companies`, `/companies/:id`
 | 0 | Repositório, Trello, convite ao professor, dados enviados; especificações em `docs/` |
 | 1 | User stories no Trello, diagrama ER, ADR PostgreSQL, compose com 3 serviços "hello world", CI inicial |
 | 2 | **Checkpoint 1** — Prisma, migrations, seed, registo/login/logout, tenant e papéis, testes de isolamento, layout base |
-| 3 | Company + TaxProfile ponta a ponta; primeiro deploy público |
+| 3 | Verificação de tenant no Prisma e testes de isolamento (D16, D17) antes de Company; Company + TaxProfile ponta a ponta; D18 e D19 e primeiro deploy público |
 | 4 | **Checkpoint 2** — Tax Engine, Analysis, Radar com explicação |
 | 5 | Importação CSV/XLSX com prévia e confirmação |
 | 6 | Simulações, histórico, auditoria — **feature freeze** |

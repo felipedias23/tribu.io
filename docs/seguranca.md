@@ -22,6 +22,23 @@ testes ─► matriz BOLA (A → B = 404) · inventário de rotas · catálogo d
 
 RLS do PostgreSQL não é usado no MVP. Ver [quando adotar](#endurecimento-futuro).
 
+## Estado de implementação
+
+As regras valem para todo código novo. Os mecanismos que as verificam automaticamente entram por etapas:
+
+| Mecanismo | Estado |
+|---|---|
+| `TenantId` vindo da sessão (`@CurrentTenant()`), 404 para outro escritório, testes e2e A/B em `/users` | Implementado (semana 2) |
+| Rate limit no login e registo, `ValidationPipe` com `forbidNonWhitelisted`, testes de sessão e de papéis | Implementado (semana 2) |
+| Verificação de tenant no Prisma (D16) | Pendente: semana 3, **antes** de Company |
+| Matriz BOLA, inventário de rotas e catálogo do schema (D17) | Pendente: semana 3, **antes** de Company |
+| FKs compostas (D15) | Com a tabela `companies` (semana 3) e cada tabela seguinte |
+| Arranque recusado em produção com valores de exemplo (D19, S25) | Pendente: antes do primeiro deploy público (semana 3) |
+| Papel do banco sem superuser nem DDL (D18, S26) | Pendente: antes do primeiro deploy público (semana 3) |
+| `helmet` | Pendente: antes do primeiro deploy público ([autenticacao.md](autenticacao.md#deploy)) |
+
+Enquanto um mecanismo está pendente, a regra correspondente é verificada na revisão do PR.
+
 ## Regras
 
 ### Tenant
