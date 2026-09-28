@@ -6,12 +6,12 @@
 
 ## Contexto
 
-O [REGRAS.md](../REGRAS.md) aceita PostgreSQL ou MongoDB, desde que a escolha seja justificada e os dados sejam modelados de acordo com a tecnologia. O Tribu.io tem requisitos de dados que pesam nessa decisão:
+O [regras académicas](../regras-academicas.md) aceita PostgreSQL ou MongoDB, desde que a escolha seja justificada e os dados sejam modelados de acordo com a tecnologia. O Tribu.io tem requisitos de dados que pesam nessa decisão:
 
-1. **Multi-tenancy com isolamento total.** Cada escritório (`AccountingFirm`) é um tenant e nenhum dado pode cruzar tenants ([relatório §3.3](../relatorio-fase1.md#33-multi-tenancy)).
+1. **Multi-tenancy com isolamento total.** Cada escritório (`AccountingFirm`) é um tenant e nenhum dado pode cruzar tenants ([relatório §3.3](../arquitetura-e-decisoes.md#33-multi-tenancy)).
 2. **Dados fortemente relacionais.** Escritório → utilizadores e empresas → perfil tributário → análises e simulações; regras → versões → análises.
 3. **Valores monetários.** Faturamento e folha alimentam cálculos tributários; erros de arredondamento são inaceitáveis.
-4. **Reprodutibilidade e auditoria.** Versões de regra não se podem sobrepor no tempo, análises são imutáveis e guardam um snapshot da entrada ([relatório §3.4](../relatorio-fase1.md#34-tax-engine-reprodutibilidade)).
+4. **Reprodutibilidade e auditoria.** Versões de regra não se podem sobrepor no tempo, análises são imutáveis e guardam um snapshot da entrada ([relatório §3.4](../arquitetura-e-decisoes.md#34-tax-engine-reprodutibilidade)).
 5. **Evolução versionada do esquema**, sem alterações manuais.
 
 ## Decisão

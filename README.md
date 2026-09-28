@@ -129,6 +129,9 @@ O [índice da documentação](docs/README.md) indica o estado de cada documento 
 
 - [Regras do projeto académico](docs/regras-academicas.md)
 - [Arquitetura e decisões (relatório técnico da Fase 1, aprovado)](docs/arquitetura-e-decisoes.md)
+- [ADR 0001: PostgreSQL com Prisma](docs/adr/0001-postgresql-prisma.md)
+- [Modelo de dados (diagrama ER)](docs/modelo-dados.md)
+- [User stories do MVP](docs/user-stories.md)
 - [Padrão de desenvolvimento seguro](docs/seguranca.md)
 - [Autenticação, tenant e papéis](docs/autenticacao.md)
 - [Banco de dados: estrutura, migrations e seed](docs/banco-de-dados.md)

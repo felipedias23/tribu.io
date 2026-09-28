@@ -1,8 +1,8 @@
 # User stories do MVP
 
-Backlog do Tribu.io para o quadro do Trello (colunas Backlog · Sprint · Em curso · Em revisão · Feito). Cada história corresponde a um cartão; os critérios de aceitação vão para a checklist do cartão. A coluna **Sem.** indica a semana prevista no [cronograma](relatorio-fase1.md#8-cronograma-8-semanas-semana-0--2026-09-26).
+Backlog do Tribu.io para o quadro do Trello (colunas Backlog · Sprint · Em curso · Em revisão · Feito). Cada história corresponde a um cartão; os critérios de aceitação vão para a checklist do cartão. A coluna **Sem.** indica a semana prevista no [cronograma](arquitetura-e-decisoes.md#8-cronograma-8-semanas-semana-0--2026-09-26).
 
-Personas ([definição do produto §3](product-definition.md#3-público-alvo)):
+Personas ([definição do produto §3](definicao-do-produto.md#3-público-alvo)):
 
 - **Sócio** — responsável pelo escritório; papel `ADMIN`.
 - **Contador** — analisa a carteira de empresas; papel `ANALYST`.
