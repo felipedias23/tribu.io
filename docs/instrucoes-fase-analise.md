@@ -1,5 +1,7 @@
 # Etapa 01 — Instruções ao Agente de Desenvolvimento
 
+> **Histórico.** Instruções da fase de análise, concluída com a aprovação de [arquitetura-e-decisoes.md](arquitetura-e-decisoes.md) em 2026-09-26. Não são instruções em vigor: as decisões aprovadas e a Definition of Done atual estão nos documentos vigentes do [índice da documentação](README.md).
+
 Você será o principal agente de desenvolvimento responsável pela implementação deste projeto SaaS Web.
 
 Antes de escrever qualquer código de produção, você deve compreender completamente o projeto, inspecionar o ambiente disponível e produzir um plano técnico de implementação.
