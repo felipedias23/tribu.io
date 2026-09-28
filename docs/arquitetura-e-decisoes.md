@@ -1,11 +1,11 @@
 # Relatório Técnico — Fase 1 (Análise e Arquitetura)
 
 > Status: **aprovado** em 2026-09-26. Decisões D10–D14 aprovadas em 2026-09-27 (autenticação, semana 2). Decisões D15–D20 aprovadas em 2026-09-28 (auditoria de segurança, [seguranca.md](seguranca.md)).
-> Fontes: [product-definition.md](product-definition.md), [etapa01.md](etapa01.md), [REGRAS.md](REGRAS.md), [CLAUDE.md](CLAUDE.md).
+> Fontes: [definicao-do-produto.md](definicao-do-produto.md), [instrucoes-fase-analise.md](instrucoes-fase-analise.md), [regras-academicas.md](regras-academicas.md), [CLAUDE.md](CLAUDE.md).
 
 ## 1. Estado inicial
 
-- Repositório vazio (apenas `CLAUDE.md` e `REGRAS.md`), sem commits nem remote.
+- Repositório vazio (apenas `CLAUDE.md` e `REGRAS.md`, hoje `regras-academicas.md`), sem commits nem remote.
 - Ambiente: Fedora 44, Node.js 22.23.1, npm 10.9.8, Git 2.55.0, OpenSSL 3.5.8.
 - Docker/Compose ausentes (Podman 5.8.7 presente, sem provider de compose) → decisão D1.
 
@@ -17,7 +17,7 @@
 | D2 | Repositório | Monorepo; a raiz corresponde ao `product/` da especificação; branch principal `main` |
 | D3 | Primeira regra tributária | Simples Nacional — Fator R (Anexo III × V) e alíquota efetiva |
 | D4 | Papéis | `ADMIN`, `ANALYST`, `VIEWER` |
-| D5 | Onboarding | Registo público cria `AccountingFirm` + primeiro `ADMIN` (exigência do REGRAS.md) |
+| D5 | Onboarding | Registo público cria `AccountingFirm` + primeiro `ADMIN` (exigência das [regras académicas](regras-academicas.md)) |
 | D6 | Entidades | Criar `ImportBatch`; `AnalysisInput` vira `inputSnapshot` (JSONB) em `Analysis` |
 | D7 | Sessão | JWT em cookie httpOnly, `SameSite=Strict`, ~8h, sem refresh token; logout invalida via `tokenVersion` |
 | D8 | Deploy público | Origem única: o mesmo domínio serve o frontend e faz proxy de `/api` (exigido por D7). Fornecedor a decidir na semana 3 (candidatos: Render, Railway) |

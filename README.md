@@ -10,7 +10,7 @@ O Tribu.io funciona como uma camada de inteligência sobre a carteira de empresa
 
 **Semana 1 — arranque e desenho.** Os três serviços (frontend, backend e base de dados) arrancam com `docker compose up` e respondem de ponta a ponta: a página inicial mostra o estado da API, que por sua vez verifica a ligação ao PostgreSQL. O CI executa lint, testes e build em cada Pull Request.
 
-**Semana 2 — persistência, autenticação e layout base (Checkpoint 1).** O banco tem as tabelas do tenant (`accounting_firms`) e dos utilizadores (`users`), com migrations versionadas e seed fictício. A API tem registo, login, logout e sessão (JWT em cookie httpOnly), autorização por papel e isolamento entre escritórios. O frontend tem login, registo e o layout autenticado responsivo, com as secções do produto ainda como páginas "Em construção". As funcionalidades de negócio começam na Semana 3, conforme o [cronograma](docs/relatorio-fase1.md#8-cronograma-8-semanas-semana-0--2026-09-26).
+**Semana 2 — persistência, autenticação e layout base (Checkpoint 1).** O banco tem as tabelas do tenant (`accounting_firms`) e dos utilizadores (`users`), com migrations versionadas e seed fictício. A API tem registo, login, logout e sessão (JWT em cookie httpOnly), autorização por papel e isolamento entre escritórios. O frontend tem login, registo e o layout autenticado responsivo, com as secções do produto ainda como páginas "Em construção". As funcionalidades de negócio começam na Semana 3, conforme o [cronograma](docs/arquitetura-e-decisoes.md#8-cronograma-8-semanas-semana-0--2026-09-26).
 
 ## Arquitetura
 
@@ -24,7 +24,7 @@ navegador ──► frontend (nginx) ──/api──► backend (NestJS) ──
 - **backend** — API REST NestJS em `/api/v1`, documentada com Swagger em `/api/docs`. Autenticação, tenant e papéis: [docs/autenticacao.md](docs/autenticacao.md).
 - **db** — PostgreSQL 17 com volume persistente. Estrutura, migrations e seed: [docs/banco-de-dados.md](docs/banco-de-dados.md).
 
-Decisões e modelo de dados planejado: [relatório técnico da Fase 1](docs/relatorio-fase1.md).
+Decisões e modelo de dados planejado: [arquitetura e decisões](docs/arquitetura-e-decisoes.md).
 
 ## Stack
 
@@ -123,11 +123,11 @@ O CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) executa estes passos
 
 ## Documentação
 
-- [Definição do produto](docs/product-definition.md)
+- [Definição do produto](docs/definicao-do-produto.md)
 - [Banco de dados: estrutura, migrations e seed](docs/banco-de-dados.md)
 - [Autenticação, tenant e papéis](docs/autenticacao.md)
 - [Frontend: layout base, rotas e sessão](docs/frontend.md)
-- [Relatório técnico — Fase 1 (aprovado)](docs/relatorio-fase1.md)
-- [Instruções da Etapa 01](docs/etapa01.md)
-- [Regras do projeto académico](docs/REGRAS.md)
+- [Arquitetura e decisões (relatório técnico da Fase 1, aprovado)](docs/arquitetura-e-decisoes.md)
+- [Instruções da fase de análise](docs/instrucoes-fase-analise.md)
+- [Regras do projeto académico](docs/regras-academicas.md)
 - [Diretrizes de desenvolvimento](docs/CLAUDE.md)

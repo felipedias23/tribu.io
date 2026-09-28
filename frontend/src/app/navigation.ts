@@ -10,7 +10,7 @@ export interface NavItem {
   roles?: readonly UserRole[];
 }
 
-/** Secções principais (docs/relatorio-fase1.md §6). */
+/** Secções principais (docs/arquitetura-e-decisoes.md §6). */
 export const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Tax Radar', path: '/radar' },
   { label: 'Empresas', path: '/companies' },
