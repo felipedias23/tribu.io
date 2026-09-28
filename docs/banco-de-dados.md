@@ -54,7 +54,7 @@ Tabelas e colunas em `snake_case` no PostgreSQL (`@@map`/`@map`); no código Typ
 - **Email único global** e não por escritório: o login recebe apenas email e password, por isso o email tem de identificar um único utilizador.
 - **`ON DELETE RESTRICT`** entre utilizador e escritório: apagar um tenant exige remover primeiro os seus dados, de forma explícita.
 - **Sem campo de estado (`status`) no utilizador:** não está definido nos documentos aprovados.
-- **Isolamento entre tenants.** Toda tabela do tenant tem `accounting_firm_id`, e as consultas devem filtrar sempre por `{ id, accountingFirmId }`. Com só duas tabelas ainda não existe relação entre entidades de tenants diferentes. As **FKs compostas** `(company_id, accounting_firm_id)` → `companies(id, accounting_firm_id)` do relatório §3.3 entram com a tabela `companies` na Semana 3.
+- **Isolamento entre tenants.** Toda tabela do tenant tem `accounting_firm_id`, e as consultas devem filtrar sempre por `{ id, accountingFirmId }`. Com só duas tabelas ainda não existe relação entre entidades de tenants diferentes. As **FKs compostas** `(company_id, accounting_firm_id)` → `companies(id, accounting_firm_id)` do relatório §3.3 entram com a tabela `companies` na Semana 3. Toda tabela nova segue as regras de schema do tenant (decisão D15, [seguranca.md](seguranca.md#schema-d15)), verificadas por um teste de catálogo do schema.
 - **`CHECK` em SQL manual:** o Prisma não expressa `CHECK`, por isso essas restrições estão escritas no fim do `migration.sql`, numa secção identificada.
 
 ## Migrations
