@@ -123,11 +123,22 @@ O CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) executa estes passos
 
 ## Documentação
 
-- [Definição do produto](docs/definicao-do-produto.md)
-- [Banco de dados: estrutura, migrations e seed](docs/banco-de-dados.md)
-- [Autenticação, tenant e papéis](docs/autenticacao.md)
-- [Frontend: layout base, rotas e sessão](docs/frontend.md)
-- [Arquitetura e decisões (relatório técnico da Fase 1, aprovado)](docs/arquitetura-e-decisoes.md)
-- [Instruções da fase de análise](docs/instrucoes-fase-analise.md)
+O [índice da documentação](docs/README.md) indica o estado de cada documento e qual prevalece em caso de divergência.
+
+### Vigentes
+
 - [Regras do projeto académico](docs/regras-academicas.md)
+- [Arquitetura e decisões (relatório técnico da Fase 1, aprovado)](docs/arquitetura-e-decisoes.md)
+- [Padrão de desenvolvimento seguro](docs/seguranca.md)
+- [Autenticação, tenant e papéis](docs/autenticacao.md)
+- [Banco de dados: estrutura, migrations e seed](docs/banco-de-dados.md)
+- [Frontend: layout base, rotas e sessão](docs/frontend.md)
 - [Diretrizes de desenvolvimento](docs/CLAUDE.md)
+
+### Referência
+
+- [Definição do produto](docs/definicao-do-produto.md)
+
+### Histórico
+
+- [Instruções da fase de análise](docs/instrucoes-fase-analise.md)
