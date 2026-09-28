@@ -184,3 +184,10 @@ Se houver tempo: análise da carteira em lote, tela de auditoria, gestão de usu
 | Prazo de 8 semanas | Escopo priorizado; deploy antecipado |
 | Upload malicioso | Limites de tamanho/linhas, parsers seguros |
 
+## 10. Questões em aberto
+
+Pontos em que os documentos ainda não têm uma resposta única. Cada um é resolvido por uma decisão (Dxx) antes do prazo indicado.
+
+| # | Questão | Prazo |
+|---|---|---|
+| Q1 | **Estado do Radar: calculado ou guardado.** A §3.5 define o estado como derivado (função pura), mas a §4 e o [modelo de dados](modelo-dados.md) guardam `Analysis.radarStatus`, com índice para filtrar. Um estado guardado fica desatualizado quando a versão da regra é substituída (`REVISAR_REGRA`) ou o perfil muda, e empresas sem análise (`DADOS_INCOMPLETOS`) não têm onde o guardar. Falta decidir se o Radar é sempre calculado no pedido (e `radarStatus` é só o histórico da execução) ou se existe um estado atual guardado e recalculado | Antes da migration de `analyses` (semana 4) |
