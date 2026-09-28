@@ -22,6 +22,7 @@ O **Tribu.io** é um SaaS Web B2B para escritórios de contabilidade que atua co
 - `AccountingFirm` é a entidade do *tenant*.
 - **Isolamento Total:** Nenhum usuário de um tenant pode acessar empresas, análises ou dados de outro tenant.
 - Todos os endpoints e consultas ao banco devem validar estritamente o `tenantId`.
+- **Toda funcionalidade nova segue o [padrão de desenvolvimento seguro](seguranca.md)** (regras S1–S26).
 
 ### Tax Engine (Núcleo Tributário)
 - **Determinístico e Auditável:** NUNCA utilize LLM (IA) para realizar cálculos ou decisões tributárias.
@@ -58,6 +59,7 @@ Uma funcionalidade só é considerada concluída se:
 - [ ] Atende integralmente aos critérios de aceitação.
 - [ ] Possui validações de entrada e verificações de autorização/tenant.
 - [ ] Todo recurso do tenant tem teste e2e de isolamento com dois escritórios (ver `docs/autenticacao.md`).
+- [ ] Toda rota com `:id` está na matriz BOLA; toda tabela nova passa no teste de catálogo do schema; toda rota de escrita tem `@Roles()` e teste 403 (ver `docs/seguranca.md`).
 - [ ] Possui testes automatizados cobrindo os cenários principais e eles estão passando.
 - [ ] O *lint* e o *build* passam sem erros.
 - [ ] As *migrations* do banco foram criadas/testadas (quando aplicável).
