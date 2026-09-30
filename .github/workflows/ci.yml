@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (lint, testes, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:17-alpine
+        # Banco efêmero do CI, destruído ao fim do job — não é um secret.
+        env:
+          POSTGRES_USER: tribu
+          POSTGRES_PASSWORD: ci-ephemeral
+          POSTGRES_DB: tribu_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tribu -d tribu_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://tribu:ci-ephemeral@localhost:5432/tribu_test?schema=public
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Instalar dependências (inclui prisma generate)
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Testes unitários
+        run: npm test
+      - name: Testes e2e
+        run: npm run test:e2e
+      - name: Build
+        run: npm run build
+
+  frontend:
+    name: Frontend (lint, typecheck, testes, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Instalar dependências
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Testes
+        run: npm test
+      - name: Build
+        run: npm run build
+
+  docker:
+    name: Docker Compose (build)
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Criar .env a partir do modelo
+        run: cp .env.example .env
+      - name: Validar docker-compose.yml
+        run: docker compose config --quiet
+      - name: Build das imagens
+        run: docker compose build
