@@ -37,6 +37,8 @@ jobs:
     env:
       DATABASE_URL: postgresql://tribu:ci-ephemeral@localhost:5432/tribu_test?schema=public
       NODE_ENV: test
+      # Password das contas fictícias do seed no banco efêmero do CI.
+      SEED_PASSWORD: ci-ephemeral-seed
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -52,6 +54,11 @@ jobs:
         run: npm run typecheck
       - name: Testes unitários
         run: npm test
+      - name: Aplicar migrations
+        run: npm run db:migrate:deploy
+      - name: Verificar schema.prisma × migrations
+        # Falha se o schema tiver alterações sem migration correspondente.
+        run: npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
       - name: Testes e2e
         run: npm run test:e2e
       - name: Build

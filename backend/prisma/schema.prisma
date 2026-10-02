@@ -1,8 +1,14 @@
 // Schema Prisma do Tribu.io.
 //
-// Nesta fase o Prisma é usado apenas para conectar ao PostgreSQL (health
-// check). Os modelos de domínio e as migrations serão adicionados conforme o
-// modelo de dados (docs/relatorio-fase1.md §4).
+// Modelo de dados planeado: docs/modelo-dados.md e docs/relatorio-fase1.md §4.
+// As entidades entram aqui na semana em que a funcionalidade é implementada.
+//
+// Toda alteração gera uma migration versionada (`npm run db:migrate:dev`).
+// Restrições que o Prisma não expressa (CHECK, EXCLUDE) são escritas em SQL na
+// própria migration — ver docs/banco-de-dados.md.
+//
+// Convenção: tabelas e colunas em snake_case no PostgreSQL (@@map/@map),
+// camelCase no código.
 
 generator client {
   provider            = "prisma-client"
@@ -13,4 +19,50 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+/// Papéis de um utilizador dentro do seu escritório (decisão D4).
+enum Role {
+  ADMIN
+  ANALYST
+  VIEWER
+
+  @@map("role")
+}
+
+/// Escritório de contabilidade: o tenant. Toda entidade do tenant referencia
+/// esta tabela por `accountingFirmId`.
+model AccountingFirm {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  /// Opcional; 14 caracteres sem pontuação (CHECK na migration).
+  cnpj      String?  @unique @db.Char(14)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  users User[]
+
+  @@map("accounting_firms")
+}
+
+/// Utilizador de um escritório. O email é único globalmente porque o login é
+/// feito só com email e password, antes de se conhecer o tenant.
+model User {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountingFirmId String   @map("accounting_firm_id") @db.Uuid
+  name             String
+  /// Sempre em minúsculas (CHECK na migration).
+  email            String   @unique
+  /// Hash argon2; a password em texto nunca é guardada.
+  passwordHash     String   @map("password_hash")
+  role             Role
+  /// Incrementado no logout para invalidar tokens já emitidos (decisão D7).
+  tokenVersion     Int      @default(0) @map("token_version")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  accountingFirm AccountingFirm @relation(fields: [accountingFirmId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([accountingFirmId])
+  @@map("users")
 }
