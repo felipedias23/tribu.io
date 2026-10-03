@@ -54,8 +54,10 @@ O tenant (`accountingFirmId`) vem **só** da sessão. Nunca do corpo, da query n
 3. Toda consulta filtra por tenant: `where: { id, accountingFirmId: tenantId }`, também em `update` e `delete`.
 4. Recurso de outro escritório responde **404**, com a mesma mensagem de um ID inexistente.
 5. DTOs nunca têm `accountingFirmId`.
-6. Na base de dados, as tabelas do tenant ganham FK composta `(x_id, accounting_firm_id)` a partir da Company (relatório §3.3).
+6. Na base de dados, toda tabela do tenant tem `accounting_firm_id NOT NULL` e as FKs entre tabelas do tenant são compostas `(x_id, accounting_firm_id)` (decisão D15).
 7. **Definition of Done:** cada recurso novo tem teste e2e com dois escritórios (ver [`tenant-isolation.e2e-spec.ts`](../backend/test/tenant-isolation.e2e-spec.ts)).
+
+O tipo `TenantId` garante que o service **recebe** o tenant, mas não que o **usa** na query. As regras completas e os mecanismos que detetam um filtro esquecido estão em [seguranca.md](seguranca.md).
 
 Exemplo ([`users.service.ts`](../backend/src/users/users.service.ts)):
 

@@ -1,6 +1,6 @@
 # Relatório Técnico — Fase 1 (Análise e Arquitetura)
 
-> Status: **aprovado** em 2026-09-26. Decisões D10–D14 aprovadas em 2026-09-27 (autenticação, semana 2).
+> Status: **aprovado** em 2026-09-26. Decisões D10–D14 aprovadas em 2026-09-27 (autenticação, semana 2). Decisões D15–D20 aprovadas em 2026-09-28 (auditoria de segurança, [seguranca.md](seguranca.md)).
 > Fontes: [product-definition.md](product-definition.md), [etapa01.md](etapa01.md), [REGRAS.md](REGRAS.md), [CLAUDE.md](CLAUDE.md).
 
 ## 1. Estado inicial
@@ -27,6 +27,12 @@
 | D12 | Registo | 409 para email já registado; o registo já inicia sessão |
 | D13 | Papéis | Só `ADMIN` altera utilizadores; o escritório nunca fica sem `ADMIN`. Restantes permissões definidas com cada funcionalidade |
 | D14 | Isolamento na semana 2 | `GET /users` e `PATCH /users/:id` servem de recurso para os testes A/B |
+| D15 | Schema do tenant | Toda tabela do tenant, incluindo as filhas (`SimulationScenario`, `ExternalCompanyMapping`), tem `accounting_firm_id NOT NULL`; toda FK entre tabelas do tenant é composta; toda unicidade de negócio inclui o tenant |
+| D16 | Verificação de tenant no Prisma | Client Extension que **recusa** (não completa) queries sobre tabelas do tenant sem `accountingFirmId` no nível superior do `where`/`data`; cliente `unscoped` só no módulo `auth` |
+| D17 | Testes de isolamento obrigatórios | Matriz BOLA, inventário de rotas (`@Public()` e `:id`) e catálogo do schema passam a fazer parte da Definition of Done |
+| D18 | Papéis do banco | Antes do deploy: papel da API sem superuser nem DDL; migrations com papel próprio |
+| D19 | Ambiente de produção | Com `NODE_ENV=production`, a API não arranca com valores de exemplo (`change-me…`) nem com `COOKIE_SECURE=false` |
+| D20 | Company e TaxProfile (semana 3) | Leitura para todos os papéis; criar/editar Company e TaxProfile para `ADMIN` e `ANALYST`; `VIEWER` só lê; sem `DELETE` no MVP. Campos do TaxProfile anuláveis para distinguir ausente de zero |
 | — | Banco | PostgreSQL + Prisma (justificativa em ADR na semana 1) |
 | — | Forma de trabalho | Projeto individual; PRs revistos pelo professor; Conventional Commits |
 
@@ -60,14 +66,14 @@ Módulos: `common`, `config`, `prisma`, `auth`, `users`, `accounting-firms`, `co
 
 ### 3.3 Multi-tenancy
 
-Schema compartilhado com `accountingFirmId` em toda entidade do tenant. Isolamento em 4 camadas:
+Schema compartilhado com `accountingFirmId` em toda entidade do tenant, incluindo as tabelas filhas (D15). Isolamento em 4 camadas:
 
 1. `tenantId` vem **apenas** da sessão autenticada (`@CurrentTenant()`, tipo `TenantId`), nunca do request. O guard identifica o utilizador pelo JWT e lê o tenant na BD (D10).
-2. Todo acesso filtra por `{ id, accountingFirmId }`; recurso de outro tenant → **404**.
+2. Todo acesso filtra por `{ id, accountingFirmId }`; recurso de outro tenant → **404**. Uma Client Extension do Prisma recusa queries sobre tabelas do tenant sem esse filtro (D16).
 3. FKs compostas `(companyId, accountingFirmId)` → `Company(id, accountingFirmId)` impedem referências cruzadas no próprio banco.
-4. Testes e2e com dois escritórios para cada recurso.
+4. Testes e2e com dois escritórios para cada recurso, mais inventário de rotas e catálogo do schema que obrigam cada rota e tabela nova a ter essa cobertura (D17).
 
-RLS do PostgreSQL fica como endurecimento futuro.
+RLS do PostgreSQL fica como endurecimento futuro, com gatilhos definidos em [seguranca.md](seguranca.md#endurecimento-futuro).
 
 ### 3.4 Tax Engine (reprodutibilidade)
 
@@ -111,13 +117,13 @@ Cada sinal traz `reasons[]` (`code`, `message`, regra, versão, dados usados, au
 | TaxRuleVersion | único `(taxRuleId, version)`; CHECK `validUntil > validFrom`; EXCLUDE sobreposição |
 | Analysis | FK composta; índices `(accountingFirmId, companyId, executedAt DESC)`, `(accountingFirmId, radarStatus)` |
 | Simulation | FK composta; 1:N SimulationScenario |
-| SimulationScenario | único `(simulationId, label)` |
+| SimulationScenario | `accountingFirmId`; FK composta → Simulation; único `(simulationId, label)` |
 | AuditLog | append-only; índice `(accountingFirmId, createdAt DESC)` |
 | Integration | único `(accountingFirmId, type, name)` |
-| ExternalCompanyMapping | únicos `(integrationId, externalId)`, `(integrationId, companyId)` |
+| ExternalCompanyMapping | `accountingFirmId`; FKs compostas → Integration e Company; únicos `(integrationId, externalId)`, `(integrationId, companyId)` |
 | ImportBatch | índice `(accountingFirmId, createdAt DESC)` |
 
-Valores monetários em `Decimal(15,2)`. IDs UUID. Migrations via Prisma Migrate (SQL adicional para CHECK/EXCLUDE). Seed idempotente e fictício: 2 escritórios, um usuário por papel, ~30 empresas cobrindo todos os estados do Radar, primeira regra publicada; senhas de demonstração via variáveis de ambiente.
+Regras de schema do tenant (D15): toda tabela do tenant tem `accounting_firm_id NOT NULL` e índice que começa por ela; tabelas que podem ser pai têm único `(id, accountingFirmId)`; FKs entre tabelas do tenant são compostas; unicidades de negócio incluem o tenant. `TaxRule` e `TaxRuleVersion` são globais e só mudam por migration/seed. Valores monetários em `Decimal(15,2)`. IDs UUID. Migrations via Prisma Migrate (SQL adicional para CHECK/EXCLUDE). Seed idempotente e fictício: 2 escritórios, um usuário por papel, ~30 empresas cobrindo todos os estados do Radar, primeira regra publicada; senhas de demonstração via variáveis de ambiente.
 
 ## 5. API (`/api/v1`, Swagger em `/api/docs`)
 
