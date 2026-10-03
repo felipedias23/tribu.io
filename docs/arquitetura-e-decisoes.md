@@ -71,9 +71,9 @@ Módulos: `common`, `config`, `prisma`, `auth`, `users`, `accounting-firms`, `co
 Schema compartilhado com `accountingFirmId` em toda entidade do tenant, incluindo as tabelas filhas (D15). Isolamento em 4 camadas:
 
 1. `tenantId` vem **apenas** da sessão autenticada (`@CurrentTenant()`, tipo `TenantId`), nunca do request. O guard identifica o utilizador pelo JWT e lê o tenant na BD (D10).
-2. Todo acesso filtra por `{ id, accountingFirmId }`; recurso de outro tenant → **404**. Uma Client Extension do Prisma recusa queries sobre tabelas do tenant sem esse filtro (D16; pendente, semana 3).
+2. Todo acesso filtra por `{ id, accountingFirmId }`; recurso de outro tenant → **404**. Uma Client Extension do Prisma recusa queries sobre tabelas do tenant sem esse filtro (D16).
 3. FKs compostas `(companyId, accountingFirmId)` → `Company(id, accountingFirmId)` impedem referências cruzadas no próprio banco.
-4. Testes e2e com dois escritórios para cada recurso, mais inventário de rotas e catálogo do schema que obrigam cada rota e tabela nova a ter essa cobertura (D17; pendente, semana 3). O estado de cada mecanismo está em [seguranca.md](seguranca.md#estado-de-implementação).
+4. Testes e2e com dois escritórios para cada recurso, mais inventário de rotas e catálogo do schema que obrigam cada rota e tabela nova a ter essa cobertura (D17). O estado de cada mecanismo está em [seguranca.md](seguranca.md#estado-de-implementação).
 
 RLS do PostgreSQL fica como endurecimento futuro, com gatilhos definidos em [seguranca.md](seguranca.md#endurecimento-futuro).
 

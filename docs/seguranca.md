@@ -30,8 +30,8 @@ As regras valem para todo código novo. Os mecanismos que as verificam automatic
 |---|---|
 | `TenantId` vindo da sessão (`@CurrentTenant()`), 404 para outro escritório, testes e2e A/B em `/users` | Implementado (semana 2) |
 | Rate limit no login e registo, `ValidationPipe` com `forbidNonWhitelisted`, testes de sessão e de papéis | Implementado (semana 2) |
-| Verificação de tenant no Prisma (D16) | Pendente: semana 3, **antes** de Company |
-| Matriz BOLA, inventário de rotas e catálogo do schema (D17) | Pendente: semana 3, **antes** de Company |
+| Verificação de tenant no Prisma (D16) | Implementado (semana 3): [`tenant-scope.ts`](../backend/src/prisma/tenant-scope.ts); import do cliente `unscoped` fora de `auth` bloqueado pelo ESLint (S5) |
+| Matriz BOLA, inventário de rotas e catálogo do schema (D17) | Implementado (semana 3): [`bola-matrix.ts`](../backend/test/support/bola-matrix.ts), [`route-inventory.e2e-spec.ts`](../backend/test/route-inventory.e2e-spec.ts), [`schema-catalog.e2e-spec.ts`](../backend/test/schema-catalog.e2e-spec.ts) |
 | FKs compostas (D15) | Com a tabela `companies` (semana 3) e cada tabela seguinte |
 | Arranque recusado em produção com valores de exemplo (D19, S25) | Pendente: antes do primeiro deploy público (semana 3) |
 | Papel do banco sem superuser nem DDL (D18, S26) | Pendente: antes do primeiro deploy público (semana 3) |
