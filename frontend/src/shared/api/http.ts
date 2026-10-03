@@ -33,6 +33,22 @@ export class ApiError extends Error {
 
 const GENERIC_ERROR = 'Não foi possível comunicar com o servidor.';
 
+type UnauthorizedHandler = () => void;
+let unauthorizedHandler: UnauthorizedHandler | null = null;
+
+/**
+ * Regista quem reage a uma sessão expirada (o AuthProvider). Chamado quando
+ * um pedido fora de /auth/* recebe 401. As rotas /auth/* ficam de fora: o 401
+ * delas faz parte do fluxo normal (credenciais erradas, /auth/me sem sessão).
+ * Devolve a função que remove o registo.
+ */
+export function onUnauthorized(handler: UnauthorizedHandler): () => void {
+  unauthorizedHandler = handler;
+  return () => {
+    if (unauthorizedHandler === handler) unauthorizedHandler = null;
+  };
+}
+
 async function toApiError(response: Response): Promise<ApiError> {
   try {
     const body = (await response.json()) as Partial<ErrorResponse>;
@@ -55,6 +71,9 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   });
 
   if (!response.ok) {
+    if (response.status === 401 && !path.startsWith('/auth/')) {
+      unauthorizedHandler?.();
+    }
     throw await toApiError(response);
   }
   if (response.status === 204) {

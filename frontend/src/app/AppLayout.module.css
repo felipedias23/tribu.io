@@ -1,0 +1,190 @@
+/* Base: telemóvel. Desktop a partir de 48rem (ver styles/global.css). */
+
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.skipLink {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: calc(var(--z-overlay) + 1);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font-weight: 600;
+  transform: translateY(-200%);
+}
+
+.skipLink:focus {
+  transform: none;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: var(--header-height);
+  padding: 0 var(--space-4);
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.menuButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid rgb(255 255 255 / 60%);
+  border-radius: var(--radius);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* Ícone de três linhas desenhado em CSS (sem biblioteca de ícones). */
+.menuIcon,
+.menuIcon::before,
+.menuIcon::after {
+  display: block;
+  width: 1rem;
+  height: 2px;
+  background: currentColor;
+}
+
+.menuIcon {
+  position: relative;
+}
+
+.menuIcon::before,
+.menuIcon::after {
+  content: '';
+  position: absolute;
+  left: 0;
+}
+
+.menuIcon::before {
+  top: -5px;
+}
+
+.menuIcon::after {
+  top: 5px;
+}
+
+.brand {
+  margin-right: auto;
+  font-weight: 700;
+  font-size: var(--font-size-lg);
+  color: inherit;
+  text-decoration: none;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+}
+
+/* Telemóvel: painel lateral por cima do conteúdo, fechado por omissão. */
+.nav {
+  position: fixed;
+  top: var(--header-height);
+  bottom: 0;
+  left: 0;
+  z-index: var(--z-overlay);
+  width: min(80vw, var(--sidebar-width));
+  padding: var(--space-4) var(--space-2);
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  box-shadow: var(--shadow-overlay);
+  overflow-y: auto;
+  transform: translateX(-100%);
+  visibility: hidden;
+  /* Ao fechar, só fica invisível no fim da animação. */
+  transition:
+    transform 0.2s ease,
+    visibility 0s linear 0.2s;
+}
+
+/* Ao abrir, fica visível de imediato para poder receber o foco. */
+.nav[data-open='true'] {
+  transform: none;
+  visibility: visible;
+  transition: transform 0.2s ease;
+}
+
+.backdrop {
+  position: fixed;
+  inset: var(--header-height) 0 0 0;
+  z-index: calc(var(--z-overlay) - 1);
+  background: rgb(27 36 48 / 40%);
+}
+
+.navList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.navLink {
+  display: block;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.navLink:hover {
+  background: var(--color-bg);
+}
+
+.navLink[aria-current='page'] {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+  font-weight: 600;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-6) var(--space-4);
+}
+
+.main:focus {
+  outline: none;
+}
+
+@media (min-width: 48rem) {
+  .menuButton,
+  .backdrop {
+    display: none;
+  }
+
+  .nav {
+    position: sticky;
+    top: var(--header-height);
+    align-self: flex-start;
+    height: calc(100vh - var(--header-height));
+    width: var(--sidebar-width);
+    flex-shrink: 0;
+    box-shadow: none;
+    transform: none;
+    visibility: visible;
+    transition: none;
+  }
+
+  .main {
+    padding: var(--space-8);
+  }
+}

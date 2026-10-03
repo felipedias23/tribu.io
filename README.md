@@ -10,7 +10,7 @@ O Tribu.io funciona como uma camada de inteligência sobre a carteira de empresa
 
 **Semana 1 — arranque e desenho.** Os três serviços (frontend, backend e base de dados) arrancam com `docker compose up` e respondem de ponta a ponta: a página inicial mostra o estado da API, que por sua vez verifica a ligação ao PostgreSQL. O CI executa lint, testes e build em cada Pull Request.
 
-**Semana 2 — persistência e autenticação.** O banco tem as tabelas do tenant (`accounting_firms`) e dos utilizadores (`users`), com migrations versionadas e seed fictício. A API tem registo, login, logout e sessão (JWT em cookie httpOnly), autorização por papel e isolamento entre escritórios; o frontend tem login, registo e rotas protegidas. O layout base é a próxima etapa da semana, conforme o [cronograma](docs/relatorio-fase1.md#8-cronograma-8-semanas-semana-0--2026-09-26).
+**Semana 2 — persistência, autenticação e layout base (Checkpoint 1).** O banco tem as tabelas do tenant (`accounting_firms`) e dos utilizadores (`users`), com migrations versionadas e seed fictício. A API tem registo, login, logout e sessão (JWT em cookie httpOnly), autorização por papel e isolamento entre escritórios. O frontend tem login, registo e o layout autenticado responsivo, com as secções do produto ainda como páginas "Em construção". As funcionalidades de negócio começam na Semana 3, conforme o [cronograma](docs/relatorio-fase1.md#8-cronograma-8-semanas-semana-0--2026-09-26).
 
 ## Arquitetura
 
@@ -20,7 +20,7 @@ Monólito modular com três serviços em containers separados:
 navegador ──► frontend (nginx) ──/api──► backend (NestJS) ──► db (PostgreSQL 17)
 ```
 
-- **frontend** — build do React servido por nginx, que também faz proxy de `/api` para o backend (mesma origem).
+- **frontend** — build do React servido por nginx, que também faz proxy de `/api` para o backend (mesma origem). Layout, rotas e sessão: [docs/frontend.md](docs/frontend.md).
 - **backend** — API REST NestJS em `/api/v1`, documentada com Swagger em `/api/docs`. Autenticação, tenant e papéis: [docs/autenticacao.md](docs/autenticacao.md).
 - **db** — PostgreSQL 17 com volume persistente. Estrutura, migrations e seed: [docs/banco-de-dados.md](docs/banco-de-dados.md).
 
@@ -50,7 +50,7 @@ Decisões e modelo de dados planejado: [relatório técnico da Fase 1](docs/rela
 │   │   └── users/        utilizadores do escritório
 │   └── test/             testes e2e (API, banco, isolamento entre tenants)
 ├── frontend/             aplicação React
-│   └── src/              app/ (rotas), auth/ (sessão e páginas), shared/
+│   └── src/              app/ (rotas e layout), auth/ (sessão e páginas), shared/
 ├── infra/docker/         Dockerfiles e nginx.conf
 ├── infra/scripts/        entrypoint do backend (migrations + seed)
 ├── docs/                 especificações do projeto
@@ -106,7 +106,7 @@ O seed cria dois escritórios fictícios, cada um com uma conta por papel. A pas
 | Beta Contabilidade | `analista@beta.tribu.example` | ANALYST |
 | Beta Contabilidade | `consulta@beta.tribu.example` | VIEWER |
 
-Entre em <http://localhost:8080/login> com uma destas contas, ou crie um escritório novo em `/register`.
+Entre em <http://localhost:8080/login> com uma destas contas, ou crie um escritório novo em `/register`. Depois do login, a aplicação abre no Tax Radar.
 
 ## Testes
 
@@ -126,6 +126,7 @@ O CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) executa estes passos
 - [Definição do produto](docs/product-definition.md)
 - [Banco de dados: estrutura, migrations e seed](docs/banco-de-dados.md)
 - [Autenticação, tenant e papéis](docs/autenticacao.md)
+- [Frontend: layout base, rotas e sessão](docs/frontend.md)
 - [Relatório técnico — Fase 1 (aprovado)](docs/relatorio-fase1.md)
 - [Instruções da Etapa 01](docs/etapa01.md)
 - [Regras do projeto académico](docs/REGRAS.md)

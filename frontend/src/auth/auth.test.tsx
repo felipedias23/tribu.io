@@ -18,11 +18,12 @@ describe('autenticação', () => {
 
     renderRoute('/');
 
-    expect(await screen.findByRole('heading', { name: 'Olá, Admin Alfa' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Tax Radar' })).toBeInTheDocument();
+    expect(screen.getByText('Admin Alfa')).toBeInTheDocument();
     expect(screen.getByText('Alfa Contabilidade · Administrador')).toBeInTheDocument();
   });
 
-  it('login com sucesso abre a página inicial', async () => {
+  it('login com sucesso abre o Tax Radar', async () => {
     let body: unknown;
     server.use(
       http.post('/api/v1/auth/login', async ({ request }) => {
@@ -36,8 +37,8 @@ describe('autenticação', () => {
     await userEvent.type(screen.getByLabelText('Password'), 'password-certa');
     await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
 
-    expect(await screen.findByRole('heading', { name: 'Olá, Admin Alfa' })).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe('/');
+    expect(await screen.findByRole('heading', { name: 'Tax Radar' })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/radar');
     expect(body).toEqual({ email: 'admin@alfa.tribu.example', password: 'password-certa' });
   });
 
@@ -81,7 +82,7 @@ describe('autenticação', () => {
     await userEvent.type(screen.getByLabelText('Password'), 'password-longa');
     await userEvent.click(screen.getByRole('button', { name: 'Criar conta' }));
 
-    expect(await screen.findByRole('heading', { name: 'Olá, Admin Alfa' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Tax Radar' })).toBeInTheDocument();
   });
 
   it('sair termina a sessão e volta ao login', async () => {
@@ -102,11 +103,11 @@ describe('autenticação', () => {
     expect(loggedOut).toBe(true);
   });
 
-  it('com sessão, o login redireciona para a página inicial', async () => {
+  it('com sessão, o login redireciona para o Tax Radar', async () => {
     server.use(http.get('/api/v1/auth/me', () => HttpResponse.json(demoUser)));
     const { router } = renderRoute('/login');
 
-    expect(await screen.findByRole('heading', { name: 'Olá, Admin Alfa' })).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe('/');
+    expect(await screen.findByRole('heading', { name: 'Tax Radar' })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/radar');
   });
 });

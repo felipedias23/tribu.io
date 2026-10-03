@@ -1,21 +1,22 @@
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 import { TextField } from '../shared/components/TextField';
+import { useDocumentTitle } from '../shared/hooks/useDocumentTitle';
 import { useAuth } from './AuthContext';
 import styles from './AuthForm.module.css';
 import { useFormSubmit } from './useFormSubmit';
 
 export function RegisterPage() {
+  useDocumentTitle('Registar escritório');
   const { register } = useAuth();
-  const navigate = useNavigate();
 
   const { submitting, onSubmit, formError, fieldErrors } = useFormSubmit(async (form) => {
+    // O AuthLayout redireciona assim que a sessão fica ativa.
     await register({
       firmName: String(form.get('firmName')),
       name: String(form.get('name')),
       email: String(form.get('email')),
       password: String(form.get('password')),
     });
-    navigate('/', { replace: true });
   });
 
   return (

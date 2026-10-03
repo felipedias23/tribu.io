@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { server } from '../../test/server';
-import { ApiError, apiRequest } from './http';
+import { ApiError, apiRequest, onUnauthorized } from './http';
 
 describe('apiRequest', () => {
   it('converte a resposta de erro padronizada da API em ApiError', async () => {
@@ -39,5 +39,28 @@ describe('apiRequest', () => {
     server.use(http.post('/api/v1/sem-corpo', () => new HttpResponse(null, { status: 204 })));
 
     await expect(apiRequest('/sem-corpo', { method: 'POST' })).resolves.toBeUndefined();
+  });
+
+  it('avisa a sessão expirada quando um pedido fora de /auth/* recebe 401', async () => {
+    server.use(http.get('/api/v1/dados', () => HttpResponse.json({ message: 'x' }, { status: 401 })));
+    const handler = vi.fn();
+    const unsubscribe = onUnauthorized(handler);
+
+    await expect(apiRequest('/dados')).rejects.toBeInstanceOf(ApiError);
+
+    expect(handler).toHaveBeenCalledOnce();
+    unsubscribe();
+  });
+
+  it('não trata 401 de /auth/* como sessão expirada', async () => {
+    server.use(http.post('/api/v1/auth/login', () => HttpResponse.json({ message: 'x' }, { status: 401 })));
+    const handler = vi.fn();
+    const unsubscribe = onUnauthorized(handler);
+
+    await expect(apiRequest('/auth/login', { method: 'POST' })).rejects.toBeInstanceOf(ApiError);
+    await expect(apiRequest('/auth/me')).rejects.toBeInstanceOf(ApiError);
+
+    expect(handler).not.toHaveBeenCalled();
+    unsubscribe();
   });
 });
