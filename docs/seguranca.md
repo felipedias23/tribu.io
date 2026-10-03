@@ -33,9 +33,9 @@ As regras valem para todo código novo. Os mecanismos que as verificam automatic
 | Verificação de tenant no Prisma (D16) | Pendente: semana 3, **antes** de Company |
 | Matriz BOLA, inventário de rotas e catálogo do schema (D17) | Pendente: semana 3, **antes** de Company |
 | FKs compostas (D15) | Com a tabela `companies` (semana 3) e cada tabela seguinte |
-| Arranque recusado em produção com valores de exemplo (D19, S25) | Pendente: antes do primeiro deploy público (semana 3) |
-| Papel do banco sem superuser nem DDL (D18, S26) | Pendente: antes do primeiro deploy público (semana 3) |
-| `helmet` | Pendente: antes do primeiro deploy público ([autenticacao.md](autenticacao.md#deploy)) |
+| Arranque recusado em produção com valores de exemplo (D19, S25) | Pendente: semana 3 (D23) |
+| Papel do banco sem superuser nem DDL (D18, S26) | Pendente: com o deploy público (semana 7, D23) |
+| `helmet` | Pendente: semana 3 (D23; [autenticacao.md](autenticacao.md#deploy)) |
 
 Enquanto um mecanismo está pendente, a regra correspondente é verificada na revisão do PR.
 
