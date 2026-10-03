@@ -7,6 +7,7 @@ import { Prisma } from '../generated/prisma/client';
  */
 const SCALAR_FIELDS: Record<Prisma.ModelName, Record<string, string>> = {
   AccountingFirm: Prisma.AccountingFirmScalarFieldEnum,
+  Company: Prisma.CompanyScalarFieldEnum,
   User: Prisma.UserScalarFieldEnum,
 };
 
