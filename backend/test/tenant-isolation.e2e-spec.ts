@@ -1,25 +1,17 @@
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
-import { hashPassword } from '../src/auth/password';
-import { SESSION_COOKIE } from '../src/auth/session-cookie';
 import { PrismaClient, Role } from '../src/generated/prisma/client';
+import { PrismaService } from '../src/prisma/prisma.service';
+import { TenantScopeViolationError } from '../src/prisma/tenant-scope';
 import { createTestApp } from './support/app';
 import { createTestPrisma } from './support/prisma';
-
-const PASSWORD = 'password-de-teste-e2e';
-
-interface Account {
-  id: string;
-  cookie: string;
-}
-
-interface Tenant {
-  firmId: string;
-  admin: Account;
-  analyst: Account;
-  viewer: Account;
-}
+import {
+  type Account,
+  createTenant,
+  deleteTenants,
+  type Tenant,
+} from './support/tenants';
 
 /**
  * Dois escritórios, A e B, cada um com ADMIN, ANALYST e VIEWER. Nenhum pedido
@@ -30,43 +22,6 @@ describe('Isolamento entre tenants (e2e)', () => {
   let prisma: PrismaClient;
   let a: Tenant;
   let b: Tenant;
-  let ipCounter = 0;
-
-  async function createTenant(label: string): Promise<Tenant> {
-    const firm = await prisma.accountingFirm.create({
-      data: { name: `Escritório ${label}` },
-    });
-    const passwordHash = await hashPassword(PASSWORD);
-    const accounts = {} as Record<'admin' | 'analyst' | 'viewer', Account>;
-
-    for (const [key, role] of [
-      ['admin', Role.ADMIN],
-      ['analyst', Role.ANALYST],
-      ['viewer', Role.VIEWER],
-    ] as const) {
-      const email = `isolamento-${randomUUID()}@tribu.example`;
-      const user = await prisma.user.create({
-        data: {
-          accountingFirmId: firm.id,
-          name: `${role} ${label}`,
-          email,
-          passwordHash,
-          role,
-        },
-      });
-      ipCounter += 1;
-      const response = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .set('X-Forwarded-For', `192.0.2.${ipCounter}`)
-        .send({ email, password: PASSWORD })
-        .expect(200);
-      const setCookie = ([] as string[])
-        .concat(response.headers['set-cookie'] ?? [])
-        .find((cookie) => cookie.startsWith(`${SESSION_COOKIE}=`));
-      accounts[key] = { id: user.id, cookie: setCookie?.split(';')[0] ?? '' };
-    }
-    return { firmId: firm.id, ...accounts };
-  }
 
   function listUsers(account: Account, query = '') {
     return request(app.getHttpServer())
@@ -84,18 +39,25 @@ describe('Isolamento entre tenants (e2e)', () => {
   beforeAll(async () => {
     app = await createTestApp();
     prisma = createTestPrisma();
-    a = await createTenant('A');
-    b = await createTenant('B');
+    a = await createTenant(app, prisma, 'A');
+    b = await createTenant(app, prisma, 'B');
   });
 
   afterAll(async () => {
-    const firmIds = [a?.firmId, b?.firmId].filter(Boolean);
-    await prisma.user.deleteMany({
-      where: { accountingFirmId: { in: firmIds } },
-    });
-    await prisma.accountingFirm.deleteMany({ where: { id: { in: firmIds } } });
+    await deleteTenants(prisma, [a, b]);
     await prisma.$disconnect();
     await app.close();
+  });
+
+  it('o PrismaService da aplicação recusa queries sem tenant (D16)', async () => {
+    const scoped = app.get<PrismaService>(PrismaService);
+
+    await expect(scoped.user.findMany()).rejects.toThrow(
+      TenantScopeViolationError,
+    );
+    await expect(
+      scoped.user.findMany({ where: { accountingFirmId: a.firmId } }),
+    ).resolves.toHaveLength(3);
   });
 
   describe('GET /users', () => {

@@ -51,11 +51,11 @@ O tenant (`accountingFirmId`) vem **só** da sessão. Nunca do corpo, da query n
 
 1. No controller, obtenha o tenant com `@CurrentTenant() tenantId: TenantId`.
 2. O service recebe `tenantId: TenantId` como primeiro parâmetro. O tipo `TenantId` só é produzido pelo decorator, por isso o TypeScript rejeita uma string vinda do pedido.
-3. Toda consulta filtra por tenant: `where: { id, accountingFirmId: tenantId }`, também em `update` e `delete`.
+3. Toda consulta filtra por tenant: `where: { id, accountingFirmId: tenantId }`, também em `update` e `delete`. O service injeta `@Inject(PrismaService)`, que recusa a query se o filtro faltar (D16). Um model novo entra em `SCALAR_FIELDS` de [`tenant-scope.ts`](../backend/src/prisma/tenant-scope.ts); o TypeScript não compila sem ele.
 4. Recurso de outro escritório responde **404**, com a mesma mensagem de um ID inexistente.
 5. DTOs nunca têm `accountingFirmId`.
 6. Na base de dados, toda tabela do tenant tem `accounting_firm_id NOT NULL` e as FKs entre tabelas do tenant são compostas `(x_id, accounting_firm_id)` (decisão D15).
-7. **Definition of Done:** cada recurso novo tem teste e2e com dois escritórios (ver [`tenant-isolation.e2e-spec.ts`](../backend/test/tenant-isolation.e2e-spec.ts)).
+7. **Definition of Done:** cada recurso novo tem teste e2e com dois escritórios (ver [`tenant-isolation.e2e-spec.ts`](../backend/test/tenant-isolation.e2e-spec.ts)) e cada rota com `:id` tem linha na [matriz BOLA](../backend/test/support/bola-matrix.ts).
 
 O tipo `TenantId` garante que o service **recebe** o tenant, mas não que o **usa** na query. As regras completas e os mecanismos que detetam um filtro esquecido estão em [seguranca.md](seguranca.md).
 

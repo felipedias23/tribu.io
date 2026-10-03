@@ -1,5 +1,5 @@
 import { JwtService } from '@nestjs/jwt';
-import type { PrismaService } from '../prisma/prisma.service';
+import type { UnscopedPrismaService } from '../prisma/unscoped-prisma.service';
 import { SessionService } from './session.service';
 
 const SECRET = 'segredo-de-teste-com-pelo-menos-32-caracteres';
@@ -26,7 +26,7 @@ describe('SessionService', () => {
     findUnique = jest.fn().mockResolvedValue(storedUser);
     sessions = new SessionService(jwt, {
       user: { findUnique },
-    } as unknown as PrismaService);
+    } as unknown as UnscopedPrismaService);
   });
 
   it('reconstrói o utilizador a partir de um token válido, sem tokenVersion', async () => {
