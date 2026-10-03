@@ -20,8 +20,9 @@ export const STATES = [
 
 /** Valor em reais: até 13 dígitos inteiros e 2 decimais, nunca negativo. */
 const MONEY = /^\d{1,13}(\.\d{1,2})?$/;
+// Sem exemplo de formato: o frontend aceita "150.000,00" e envia "150000.00".
 const MONEY_MESSAGE =
-  'Informe um valor em reais, não negativo, com até 2 casas decimais (ex.: 150000.00).';
+  'Informe um valor em reais, não negativo, com até 2 casas decimais.';
 
 /** Remove a máscara (6201-5/01 → 6201501); texto vazio passa a null. */
 const NormalizeCnae = () =>
