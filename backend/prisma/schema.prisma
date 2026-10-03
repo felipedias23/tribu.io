@@ -30,6 +30,15 @@ enum Role {
   @@map("role")
 }
 
+/// Regimes aceites no perfil tributário. O MEI fica fora do MVP.
+enum TaxRegime {
+  SIMPLES_NACIONAL
+  LUCRO_PRESUMIDO
+  LUCRO_REAL
+
+  @@map("tax_regime")
+}
+
 /// Escritório de contabilidade: o tenant. Toda entidade do tenant referencia
 /// esta tabela por `accountingFirmId`.
 model AccountingFirm {
@@ -83,6 +92,7 @@ model Company {
   updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   accountingFirm AccountingFirm @relation(fields: [accountingFirmId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  taxProfile     TaxProfile?
 
   /// O CNPJ não se repete dentro do escritório (regra S9).
   @@unique([accountingFirmId, cnpj])
@@ -90,4 +100,35 @@ model Company {
   @@unique([id, accountingFirmId])
   @@index([accountingFirmId, legalName])
   @@map("companies")
+}
+
+/// Dados tributários de uma empresa (US08), 1:1. Todos os campos tributários
+/// são anuláveis: NULL é dado ausente, distinto de zero (decisão D20).
+model TaxProfile {
+  id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountingFirmId String     @map("accounting_firm_id") @db.Uuid
+  companyId        String     @map("company_id") @db.Uuid
+  taxRegime        TaxRegime? @map("tax_regime")
+  /// 7 dígitos sem pontuação (CHECK na migration).
+  cnae             String?    @db.Char(7)
+  /// Nome do município.
+  city             String?
+  /// UF (CHECK com as 27 siglas na migration).
+  state            String?    @db.Char(2)
+  /// Receita bruta dos 12 meses anteriores ao período (RBT12).
+  revenue12m       Decimal?   @map("revenue_12m") @db.Decimal(15, 2)
+  /// Folha de pagamento dos mesmos 12 meses.
+  payroll12m       Decimal?   @map("payroll_12m") @db.Decimal(15, 2)
+  /// Mês de referência, guardado como o 1.º dia do mês.
+  referencePeriod  DateTime?  @map("reference_period") @db.Date
+  createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  /// FK composta (decisão D15): o perfil e a empresa são do mesmo escritório.
+  company Company @relation(fields: [companyId, accountingFirmId], references: [id, accountingFirmId], onDelete: Restrict, onUpdate: Restrict)
+
+  /// Um perfil por empresa. A ordem é a da FK composta (exigência do Prisma).
+  @@unique([companyId, accountingFirmId])
+  @@index([accountingFirmId])
+  @@map("tax_profiles")
 }
