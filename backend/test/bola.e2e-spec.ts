@@ -45,7 +45,7 @@ describe('Matriz BOLA (e2e)', () => {
   it.each(BOLA_CASES.map((testCase) => [routeKey(testCase), testCase]))(
     '%s: recurso de outro escritório responde como inexistente',
     async (_route, testCase) => {
-      const id = testCase.targetId(b);
+      const id = await testCase.targetId(b, prisma);
       const before = await testCase.snapshot(prisma, id);
 
       const crossTenant = await send(testCase, id).expect(404);
