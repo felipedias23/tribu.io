@@ -1,6 +1,6 @@
 // Schema Prisma do Tribu.io.
 //
-// Modelo de dados planeado: docs/modelo-dados.md e docs/relatorio-fase1.md §4.
+// Modelo de dados planeado: docs/modelo-dados.md e docs/arquitetura-e-decisoes.md §4.
 // As entidades entram aqui na semana em que a funcionalidade é implementada.
 //
 // Toda alteração gera uma migration versionada (`npm run db:migrate:dev`).

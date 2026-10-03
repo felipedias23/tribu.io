@@ -51,6 +51,10 @@ O **Tribu.io** é um SaaS Web B2B para escritórios de contabilidade que atua co
 5. **Segurança & LGPD:**
    - NUNCA introduza *secrets* ou credenciais *hardcoded*.
    - Use apenas dados fictícios em seeds de desenvolvimento.
+6. **Documentação — fonte única:**
+   - A precedência entre documentos está no [índice da documentação](README.md). Em caso de divergência, vale o documento de ordem mais alta.
+   - [instrucoes-fase-analise.md](instrucoes-fase-analise.md) é histórico: não contém instruções em vigor.
+   - Nunca copie uma regra para outro documento; aponte para a fonte com um link. Uma regra alterada é registada como decisão (Dxx) em [arquitetura-e-decisoes.md](arquitetura-e-decisoes.md) e atualizada na fonte do assunto no mesmo commit.
 
 ---
 

@@ -1,8 +1,8 @@
 # User stories do MVP
 
-Backlog do Tribu.io para o quadro do Trello (colunas Backlog · Sprint · Em curso · Em revisão · Feito). Cada história corresponde a um cartão; os critérios de aceitação vão para a checklist do cartão. A coluna **Sem.** indica a semana prevista no [cronograma](relatorio-fase1.md#8-cronograma-8-semanas-semana-0--2026-09-26).
+Backlog do Tribu.io para o quadro do Trello (colunas Backlog · Sprint · Em curso · Em revisão · Feito). Cada história corresponde a um cartão; os critérios de aceitação vão para a checklist do cartão. A coluna **Sem.** indica a semana prevista no [cronograma](arquitetura-e-decisoes.md#8-cronograma-8-semanas-semana-0--2026-09-26).
 
-Personas ([definição do produto §3](product-definition.md#3-público-alvo)):
+Personas ([definição do produto §3](definicao-do-produto.md#3-público-alvo)):
 
 - **Sócio** — responsável pelo escritório; papel `ADMIN`.
 - **Contador** — analisa a carteira de empresas; papel `ANALYST`.
@@ -36,9 +36,9 @@ Personas ([definição do produto §3](product-definition.md#3-público-alvo)):
 **Como** sócio de um escritório de contabilidade, **quero** criar uma conta para o meu escritório **para** começar a usar o Tribu.io.
 
 - [ ] O registo cria o escritório e o primeiro utilizador com papel `ADMIN`.
-- [ ] A password é guardada apenas em hash (argon2).
-- [ ] Email duplicado ou dados inválidos devolvem erro claro por campo.
-- [ ] Após o registo, o utilizador fica autenticado.
+- [ ] A password tem 8 a 128 caracteres e é guardada apenas em hash (argon2id) — decisão D11.
+- [ ] Dados inválidos devolvem erro claro por campo; email já registado devolve 409 — decisão D12.
+- [ ] Após o registo, o utilizador fica autenticado — decisão D12.
 
 ### US02 — Entrar no sistema
 
@@ -70,9 +70,10 @@ Personas ([definição do produto §3](product-definition.md#3-público-alvo)):
 
 **Como** sócio, **quero** convidar colegas e definir o que cada um pode fazer **para** controlar o acesso aos dados.
 
-- [ ] Só `ADMIN` cria e altera utilizadores.
-- [ ] `ANALYST` executa análises e simulações; `VIEWER` só consulta.
+- [ ] Só `ADMIN` altera utilizadores (nome e papel) — decisão D13.
+- [ ] O escritório nunca fica sem `ADMIN`.
 - [ ] Ações proibidas pelo papel devolvem 403.
+- [ ] As permissões de `ANALYST` e `VIEWER` em cada funcionalidade são definidas com essa funcionalidade.
 
 ## Empresas
 

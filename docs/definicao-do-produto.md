@@ -2,6 +2,8 @@
 
 **Definição Oficial do Produto — SaaS Web de Inteligência Tributária**
 
+> **Referência.** Especificação original do produto. As decisões registadas em [arquitetura-e-decisoes.md](arquitetura-e-decisoes.md) prevalecem sobre o modelo técnico descrito aqui (ver o [índice da documentação](README.md)).
+
 ## 1. Visão do produto
 
 Tribu.io é um SaaS Web B2B desenvolvido para escritórios de contabilidade, com o objetivo de funcionar como uma camada de inteligência tributária sobre a carteira de empresas já administrada pelo escritório.
@@ -256,6 +258,8 @@ Entidades principais:
 - Analysis
 
 - AnalysisInput
+
+> Nota (decisão D6): `AnalysisInput` foi substituída pelo campo `inputSnapshot` (JSONB) em `Analysis`, e foi acrescentada a entidade `ImportBatch`. Ver [arquitetura-e-decisoes.md §4](arquitetura-e-decisoes.md#4-modelo-de-dados).
 
 - Simulation
 

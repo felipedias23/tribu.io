@@ -9,7 +9,7 @@ import { ErrorPage } from './ErrorPage';
 import { NotFoundPage } from './NotFoundPage';
 
 /**
- * Mapa de rotas (docs/relatorio-fase1.md §6). As secções ainda não
+ * Mapa de rotas (docs/arquitetura-e-decisoes.md §6). As secções ainda não
  * implementadas mostram uma página "Em construção"; as rotas de detalhe
  * (/companies/:id, /analyses/:id, …) entram com cada funcionalidade.
  */

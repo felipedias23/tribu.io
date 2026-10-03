@@ -1,6 +1,6 @@
 # Banco de dados
 
-PostgreSQL 17 com Prisma 7. O modelo completo planeado para o MVP está no [relatório técnico §4](relatorio-fase1.md#4-modelo-de-dados); aqui fica o que **já existe** no banco e como operá-lo.
+PostgreSQL 17 com Prisma 7. O modelo completo planeado para o MVP está no [relatório técnico §4](arquitetura-e-decisoes.md#4-modelo-de-dados); aqui fica o que **já existe** no banco e como operá-lo.
 
 ## Estado atual
 

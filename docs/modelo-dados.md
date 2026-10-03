@@ -1,8 +1,8 @@
 # Modelo de dados (diagrama ER)
 
-Modelo relacional planeado para o MVP em PostgreSQL, derivado do [relatório técnico §4](relatorio-fase1.md#4-modelo-de-dados). A justificação da tecnologia está no [ADR 0001](adr/0001-postgresql-prisma.md).
+Modelo relacional planeado para o MVP em PostgreSQL, derivado do [relatório técnico §4](arquitetura-e-decisoes.md#4-modelo-de-dados). A justificação da tecnologia está no [ADR 0001](adr/0001-postgresql-prisma.md).
 
-As tabelas são criadas incrementalmente, via Prisma Migrate, na semana em que cada funcionalidade é implementada (ver [cronograma](relatorio-fase1.md#8-cronograma-8-semanas-semana-0--2026-09-26)). Este diagrama é o alvo; os nomes finais das colunas podem ajustar-se na implementação.
+As tabelas são criadas incrementalmente, via Prisma Migrate, na semana em que cada funcionalidade é implementada (ver [cronograma](arquitetura-e-decisoes.md#8-cronograma-8-semanas-semana-0--2026-09-26)). Este diagrama é o alvo; os nomes finais das colunas podem ajustar-se na implementação.
 
 ## Diagrama
 
@@ -32,6 +32,7 @@ erDiagram
         string name
         string cnpj UK "opcional"
         datetime createdAt
+        datetime updatedAt
     }
     User {
         uuid id PK
@@ -42,6 +43,7 @@ erDiagram
         enum role "ADMIN | ANALYST | VIEWER"
         int tokenVersion "invalida sessões no logout"
         datetime createdAt
+        datetime updatedAt
     }
     Company {
         uuid id PK

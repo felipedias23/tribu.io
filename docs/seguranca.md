@@ -1,6 +1,6 @@
 # Padrão de desenvolvimento seguro
 
-Regras obrigatórias para toda funcionalidade nova do Tribu.io. Resultam da auditoria técnica e de segurança de 2026-09-28 e das decisões D15–D20 ([relatório §2](relatorio-fase1.md#2-decisões)).
+Regras obrigatórias para toda funcionalidade nova do Tribu.io. Resultam da auditoria técnica e de segurança de 2026-09-28 e das decisões D15–D20 ([relatório §2](arquitetura-e-decisoes.md#2-decisões)).
 
 O requisito que orienta todas elas: **um escritório nunca acede, altera nem descobre dados de outro**. O isolamento não depende do frontend; é garantido no backend e no banco.
 
