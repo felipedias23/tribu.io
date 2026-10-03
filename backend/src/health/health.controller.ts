@@ -1,13 +1,24 @@
 import { Controller, Get, HttpStatus, Res } from '@nestjs/common';
+import {
+  ApiOkResponse,
+  ApiServiceUnavailableResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
+import { Public } from '../auth/decorators/public.decorator';
 import { HealthReport, HealthService } from './health.service';
 
+@ApiTags('health')
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(private readonly health: HealthService) {}
 
-  /** 200 com o banco disponível; 503 caso contrário. */
   @Get()
+  @ApiOkResponse({ description: 'API e banco de dados disponíveis.' })
+  @ApiServiceUnavailableResponse({
+    description: 'Banco de dados indisponível.',
+  })
   async check(
     @Res({ passthrough: true }) response: Response,
   ): Promise<HealthReport> {

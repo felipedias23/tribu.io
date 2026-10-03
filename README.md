@@ -10,7 +10,7 @@ O Tribu.io funciona como uma camada de inteligência sobre a carteira de empresa
 
 **Semana 1 — arranque e desenho.** Os três serviços (frontend, backend e base de dados) arrancam com `docker compose up` e respondem de ponta a ponta: a página inicial mostra o estado da API, que por sua vez verifica a ligação ao PostgreSQL. O CI executa lint, testes e build em cada Pull Request.
 
-**Semana 2 — persistência.** O banco tem as tabelas do tenant (`accounting_firms`) e dos utilizadores (`users`), com migrations versionadas e um seed fictício. Ao arrancar, o backend aplica as migrations e executa o seed. Autenticação e layout base são as próximas etapas da semana, conforme o [cronograma](docs/relatorio-fase1.md#8-cronograma-8-semanas-semana-0--2026-09-26).
+**Semana 2 — persistência e autenticação.** O banco tem as tabelas do tenant (`accounting_firms`) e dos utilizadores (`users`), com migrations versionadas e seed fictício. A API tem registo, login, logout e sessão (JWT em cookie httpOnly), autorização por papel e isolamento entre escritórios; o frontend tem login, registo e rotas protegidas. O layout base é a próxima etapa da semana, conforme o [cronograma](docs/relatorio-fase1.md#8-cronograma-8-semanas-semana-0--2026-09-26).
 
 ## Arquitetura
 
@@ -21,7 +21,7 @@ navegador ──► frontend (nginx) ──/api──► backend (NestJS) ──
 ```
 
 - **frontend** — build do React servido por nginx, que também faz proxy de `/api` para o backend (mesma origem).
-- **backend** — API REST NestJS em `/api/v1`. Nesta fase expõe `GET /api/v1/health`, que confirma a ligação ao banco.
+- **backend** — API REST NestJS em `/api/v1`, documentada com Swagger em `/api/docs`. Autenticação, tenant e papéis: [docs/autenticacao.md](docs/autenticacao.md).
 - **db** — PostgreSQL 17 com volume persistente. Estrutura, migrations e seed: [docs/banco-de-dados.md](docs/banco-de-dados.md).
 
 Decisões e modelo de dados planejado: [relatório técnico da Fase 1](docs/relatorio-fase1.md).
@@ -30,8 +30,8 @@ Decisões e modelo de dados planejado: [relatório técnico da Fase 1](docs/rela
 
 | Camada | Tecnologias |
 | --- | --- |
-| Frontend | React 19, TypeScript, Vite, Vitest, Testing Library |
-| Backend | NestJS 11, TypeScript, REST, Jest, Supertest |
+| Frontend | React 19, TypeScript, Vite, React Router, Vitest, Testing Library, MSW |
+| Backend | NestJS 11, TypeScript, REST, Swagger, class-validator, JWT (`@nestjs/jwt`), argon2, Jest, Supertest |
 | Banco | PostgreSQL 17, Prisma 7 |
 | Infra | Docker, Docker Compose, nginx, GitHub Actions |
 
@@ -42,12 +42,15 @@ Decisões e modelo de dados planejado: [relatório técnico da Fase 1](docs/rela
 ├── backend/              API NestJS
 │   ├── prisma/           schema.prisma e migrations/
 │   ├── src/
+│   │   ├── auth/         registo, login, sessão, guards e decorators
+│   │   ├── common/       formato de erros e validação
 │   │   ├── config/       validação das variáveis de ambiente
 │   │   ├── health/       GET /api/v1/health
-│   │   └── prisma/       ligação ao PostgreSQL e seed
-│   └── test/             testes e2e (API e banco)
+│   │   ├── prisma/       ligação ao PostgreSQL e seed
+│   │   └── users/        utilizadores do escritório
+│   └── test/             testes e2e (API, banco, isolamento entre tenants)
 ├── frontend/             aplicação React
-│   └── src/
+│   └── src/              app/ (rotas), auth/ (sessão e páginas), shared/
 ├── infra/docker/         Dockerfiles e nginx.conf
 ├── infra/scripts/        entrypoint do backend (migrations + seed)
 ├── docs/                 especificações do projeto
@@ -72,6 +75,7 @@ docker compose up --build
 | --- | --- |
 | Aplicação | <http://localhost:8080> |
 | Health check da API | <http://localhost:8080/api/v1/health> |
+| Documentação da API (Swagger) | <http://localhost:8080/api/docs> |
 
 O backend só arranca depois de o PostgreSQL estar saudável e o frontend depois de o backend estar saudável. Ao arrancar, o backend aplica as migrations pendentes e, com `SEED_ON_START=true`, executa o seed. Para parar: `docker compose down` (acrescente `-v` para apagar também os dados do banco).
 
@@ -102,7 +106,7 @@ O seed cria dois escritórios fictícios, cada um com uma conta por papel. A pas
 | Beta Contabilidade | `analista@beta.tribu.example` | ANALYST |
 | Beta Contabilidade | `consulta@beta.tribu.example` | VIEWER |
 
-O login será disponibilizado na próxima etapa da Semana 2.
+Entre em <http://localhost:8080/login> com uma destas contas, ou crie um escritório novo em `/register`.
 
 ## Testes
 
@@ -121,6 +125,7 @@ O CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) executa estes passos
 
 - [Definição do produto](docs/product-definition.md)
 - [Banco de dados: estrutura, migrations e seed](docs/banco-de-dados.md)
+- [Autenticação, tenant e papéis](docs/autenticacao.md)
 - [Relatório técnico — Fase 1 (aprovado)](docs/relatorio-fase1.md)
 - [Instruções da Etapa 01](docs/etapa01.md)
 - [Regras do projeto académico](docs/REGRAS.md)

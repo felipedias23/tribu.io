@@ -24,6 +24,11 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-explicit-any': 'error',
+      // Permite omitir campos com rest: const { passwordHash, ...safe } = user
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { ignoreRestSiblings: true },
+      ],
     },
   },
   {

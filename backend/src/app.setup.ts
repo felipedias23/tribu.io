@@ -1,0 +1,47 @@
+import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { validationExceptionFactory } from './common/validation/validation-exception.factory';
+import type { Env } from './config/env.validation';
+
+export const API_PREFIX = 'api/v1';
+export const DOCS_PATH = 'api/docs';
+
+/** Configuração global partilhada por main.ts e pelos testes e2e. */
+export function configureApp(app: NestExpressApplication): void {
+  app.setGlobalPrefix(API_PREFIX);
+  app.enableShutdownHooks();
+
+  // O nginx fica à frente da API: o IP do cliente, usado pelo rate limiting,
+  // é o que ele acrescenta ao X-Forwarded-For. Confiar num número exato de
+  // proxies impede que o cliente falsifique o IP enviando o próprio cabeçalho.
+  const config = app.get<ConfigService<Env, true>>(ConfigService);
+  app.set('trust proxy', config.get('TRUST_PROXY_HOPS', { infer: true }));
+  app.use(cookieParser());
+
+  // Sem CORS: o frontend acede à API pela mesma origem (proxy nginx/Vite).
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      exceptionFactory: validationExceptionFactory,
+    }),
+  );
+  app.useGlobalFilters(new HttpExceptionFilter());
+
+  const document = SwaggerModule.createDocument(
+    app,
+    new DocumentBuilder()
+      .setTitle('Tribu.io API')
+      .setDescription(
+        'API REST do Tribu.io — inteligência tributária para escritórios de contabilidade.',
+      )
+      .setVersion('0.1.0')
+      .build(),
+  );
+  SwaggerModule.setup(DOCS_PATH, app, document);
+}

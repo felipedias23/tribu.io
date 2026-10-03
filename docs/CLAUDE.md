@@ -57,6 +57,7 @@ O **Tribu.io** é um SaaS Web B2B para escritórios de contabilidade que atua co
 Uma funcionalidade só é considerada concluída se:
 - [ ] Atende integralmente aos critérios de aceitação.
 - [ ] Possui validações de entrada e verificações de autorização/tenant.
+- [ ] Todo recurso do tenant tem teste e2e de isolamento com dois escritórios (ver `docs/autenticacao.md`).
 - [ ] Possui testes automatizados cobrindo os cenários principais e eles estão passando.
 - [ ] O *lint* e o *build* passam sem erros.
 - [ ] As *migrations* do banco foram criadas/testadas (quando aplicável).
