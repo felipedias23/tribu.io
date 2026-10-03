@@ -50,8 +50,9 @@ erDiagram
         uuid accountingFirmId FK
         string cnpj "único por escritório"
         string legalName
-        string tradeName
+        string tradeName "opcional"
         datetime createdAt
+        datetime updatedAt
     }
     TaxProfile {
         uuid id PK

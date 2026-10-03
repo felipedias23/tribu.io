@@ -4,12 +4,13 @@ PostgreSQL 17 com Prisma 7. O modelo completo planeado para o MVP está no [rela
 
 ## Estado atual
 
-Semana 2, etapa de persistência: apenas o tenant e os utilizadores. As outras entidades (Company, TaxProfile, …) entram por migration na semana da respetiva funcionalidade.
+Semana 3: o tenant, os utilizadores e as empresas. As outras entidades (TaxProfile, …) entram por migration na semana da respetiva funcionalidade.
 
 | Tabela | Modelo Prisma | Finalidade |
 |---|---|---|
 | `accounting_firms` | `AccountingFirm` | Escritório de contabilidade; é o **tenant** |
 | `users` | `User` | Utilizador de um escritório, com papel `ADMIN`, `ANALYST` ou `VIEWER` |
+| `companies` | `Company` | Empresa cliente do escritório (US06) |
 
 Tabelas e colunas em `snake_case` no PostgreSQL (`@@map`/`@map`); no código TypeScript os nomes ficam em `camelCase`.
 
@@ -35,6 +36,17 @@ Tabelas e colunas em `snake_case` no PostgreSQL (`@@map`/`@map`); no código Typ
 | `token_version` | `integer` | padrão 0, ≥ 0 (`CHECK`); incrementado no logout |
 | `created_at`, `updated_at` | `timestamptz(3)` | preenchidos automaticamente |
 
+### `companies`
+
+| Coluna | Tipo | Regras |
+|---|---|---|
+| `id` | `uuid` | PK, `gen_random_uuid()` |
+| `accounting_firm_id` | `uuid` | FK → `accounting_firms.id`, obrigatório |
+| `cnpj` | `char(14)` | obrigatório, único no escritório; 12 alfanuméricos + 2 dígitos, sem pontuação (`CHECK`) |
+| `legal_name` | `text` | razão social; obrigatória, não vazia (`CHECK`); collation `pt-BR-x-icu` |
+| `trade_name` | `text` | nome fantasia; opcional, `NULL` em vez de texto vazio (`CHECK`) |
+| `created_at`, `updated_at` | `timestamptz(3)` | preenchidos automaticamente |
+
 ### Restrições
 
 | Nome | Tipo | Motivo |
@@ -47,6 +59,12 @@ Tabelas e colunas em `snake_case` no PostgreSQL (`@@map`/`@map`); no código Typ
 | `accounting_firms_cnpj_format_check` | `CHECK` | Formato numérico e alfanumérico (IN RFB 2.229/2024); os dígitos verificadores são validados na aplicação |
 | `*_name_not_blank_check` | `CHECK` | Nomes não podem ser só espaços |
 | `users_accounting_firm_id_idx` | índice | Consultas filtradas por tenant |
+| `companies_accounting_firm_id_fkey` | FK, `ON DELETE RESTRICT` | Toda empresa pertence a um escritório existente |
+| `companies_accounting_firm_id_cnpj_key` | único | O CNPJ não se repete dentro do escritório; noutro escritório é aceite (regra S9) |
+| `companies_id_accounting_firm_id_key` | único | Alvo das FKs compostas das tabelas filhas (decisão D15) |
+| `companies_cnpj_format_check` | `CHECK` | Mesmo formato do CNPJ do escritório; os dígitos verificadores são validados na aplicação |
+| `companies_trade_name_not_blank_check` | `CHECK` | Sem nome fantasia, o valor é `NULL` |
+| `companies_accounting_firm_id_legal_name_idx` | índice | Listagem do escritório ordenada por razão social |
 
 ## Decisões de modelagem
 
@@ -54,7 +72,8 @@ Tabelas e colunas em `snake_case` no PostgreSQL (`@@map`/`@map`); no código Typ
 - **Email único global** e não por escritório: o login recebe apenas email e password, por isso o email tem de identificar um único utilizador.
 - **`ON DELETE RESTRICT`** entre utilizador e escritório: apagar um tenant exige remover primeiro os seus dados, de forma explícita.
 - **Sem campo de estado (`status`) no utilizador:** não está definido nos documentos aprovados.
-- **Isolamento entre tenants.** Toda tabela do tenant tem `accounting_firm_id`, e as consultas devem filtrar sempre por `{ id, accountingFirmId }`. Com só duas tabelas ainda não existe relação entre entidades de tenants diferentes. As **FKs compostas** `(company_id, accounting_firm_id)` → `companies(id, accounting_firm_id)` do relatório §3.3 entram com a tabela `companies` na Semana 3. A tabela `users` recebe `UNIQUE (id, accounting_firm_id)` na migration da primeira tabela que a referencie (`analyses`, semana 4), para servir de alvo às FKs compostas ([modelo de dados](modelo-dados.md#restrições-e-índices)). Toda tabela nova segue as regras de schema do tenant (decisão D15, [seguranca.md](seguranca.md#schema-d15)), verificadas por um teste de catálogo do schema.
+- **Isolamento entre tenants.** Toda tabela do tenant tem `accounting_firm_id`, e as consultas devem filtrar sempre por `{ id, accountingFirmId }`. Ainda não existe relação entre tabelas do tenant. A tabela `companies` já tem `UNIQUE (id, accounting_firm_id)`, e as **FKs compostas** `(company_id, accounting_firm_id)` → `companies(id, accounting_firm_id)` do relatório §3.3 entram com a primeira tabela filha (`tax_profiles`, semana 3). A tabela `users` recebe `UNIQUE (id, accounting_firm_id)` na migration da primeira tabela que a referencie (`analyses`, semana 4), para servir de alvo às FKs compostas ([modelo de dados](modelo-dados.md#restrições-e-índices)). Toda tabela nova segue as regras de schema do tenant (decisão D15, [seguranca.md](seguranca.md#schema-d15)), verificadas por um teste de catálogo do schema.
+- **Ordenação em português:** a collation do banco ordena pelo valor binário (maiúsculas antes de minúsculas, acentos no fim). A razão social usa a collation ICU `pt-BR-x-icu`, aplicada por SQL na migration porque o Prisma não a expressa.
 - **`CHECK` em SQL manual:** o Prisma não expressa `CHECK`, por isso essas restrições estão escritas no fim do `migration.sql`, numa secção identificada.
 
 ## Migrations
@@ -100,6 +119,8 @@ Todas usam a password definida em `SEED_PASSWORD` no `.env`. Os emails usam o do
 | Beta Contabilidade | `admin@beta.tribu.example` | `ADMIN` |
 | Beta Contabilidade | `analista@beta.tribu.example` | `ANALYST` |
 | Beta Contabilidade | `consulta@beta.tribu.example` | `VIEWER` |
+
+Cada escritório tem também seis empresas fictícias. Os CNPJs têm raiz alfanumérica começada por `TRIBU` (ex.: `TRIBUA000001` + dígitos verificadores), para não coincidirem com empresas reais.
 
 A password só é aplicada quando a conta é **criada**. Mudar `SEED_PASSWORD` depois não altera contas existentes; para isso, recrie o banco.
 
