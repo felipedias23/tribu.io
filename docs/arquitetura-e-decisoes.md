@@ -20,7 +20,7 @@
 | D5 | Onboarding | Registo público cria `AccountingFirm` + primeiro `ADMIN` (exigência das [regras académicas](regras-academicas.md)) |
 | D6 | Entidades | Criar `ImportBatch`; `AnalysisInput` vira `inputSnapshot` (JSONB) em `Analysis` |
 | D7 | Sessão | JWT em cookie httpOnly, `SameSite=Strict`, ~8h, sem refresh token; logout invalida via `tokenVersion` |
-| D8 | Deploy público | Origem única: o mesmo domínio serve o frontend e faz proxy de `/api` (exigido por D7). Fornecedor a decidir na semana 3 (candidatos: Render, Railway) |
+| D8 | Deploy público | Origem única: o mesmo domínio serve o frontend e faz proxy de `/api` (exigido por D7). Fornecedor a decidir na semana 7 (candidatos: Render, Railway; D23) |
 | D9 | Documentação | Especificações versionadas em `docs/` em Markdown |
 | D10 | Autenticação (semana 2) | `@nestjs/jwt` com guard próprio, sem Passport; tenant e papel lidos da BD a cada pedido (JWT só com `sub` e `tv`) |
 | D11 | Password | 8 a 128 caracteres, sem regras de composição (NIST 800-63B) |
@@ -35,6 +35,7 @@
 | D20 | Company e TaxProfile (semana 3) | Leitura para todos os papéis; criar/editar Company e TaxProfile para `ADMIN` e `ANALYST`; `VIEWER` só lê; sem `DELETE` no MVP. Campos do TaxProfile anuláveis para distinguir ausente de zero |
 | D21 | Navegação por papel | Todas as secções aparecem para todos os papéis; cada secção recebe restrição quando a regra da sua funcionalidade for aprovada, protegida também na rota e na API (esconder no frontend é só conveniência, S24) |
 | D22 | Criação de utilizadores | `POST /users` (o `ADMIN` acrescenta colegas ao escritório) sai da semana 2 e passa à lista de extras (US17). A forma de o colega receber o acesso (password temporária ou link por email) é decidida antes da implementação. Na semana 2, a gestão da equipa é editar nome e papel (US05) |
+| D23 | Deploy só na semana 7 | O primeiro deploy público sai da semana 3 e fica para a semana 7, como no plano do professor, para evitar custos de hospedagem antes do fim do projeto. Com ele vão a escolha do fornecedor (D8) e os papéis do banco (D18). D19 e `helmet` ficam na semana 3, porque não dependem do fornecedor |
 | — | Banco | PostgreSQL + Prisma ([ADR 0001](adr/0001-postgresql-prisma.md)) |
 | — | Forma de trabalho | Projeto individual; PRs revistos pelo professor; Conventional Commits |
 
@@ -165,11 +166,11 @@ Rotas: `/login`, `/register`, `/radar` (inicial), `/companies`, `/companies/:id`
 | 0 | Repositório, Trello, convite ao professor, dados enviados; especificações em `docs/` |
 | 1 | User stories no Trello, diagrama ER, ADR PostgreSQL, compose com 3 serviços "hello world", CI inicial |
 | 2 | **Checkpoint 1** — Prisma, migrations, seed, registo/login/logout, tenant e papéis, testes de isolamento, layout base |
-| 3 | Verificação de tenant no Prisma e testes de isolamento (D16, D17) antes de Company; Company + TaxProfile ponta a ponta; D18 e D19 e primeiro deploy público |
+| 3 | Verificação de tenant no Prisma e testes de isolamento (D16, D17) antes de Company; Company + TaxProfile ponta a ponta; D19 e `helmet` |
 | 4 | **Checkpoint 2** — Tax Engine, Analysis, Radar com explicação |
 | 5 | Importação CSV/XLSX com prévia e confirmação |
 | 6 | Simulações, histórico, auditoria — **feature freeze** |
-| 7 | Testes, CI verde, deploy final, acessibilidade, revisão de segurança |
+| 7 | Testes, CI verde, escolha do fornecedor (D8), papéis do banco (D18) e deploy público (D23), acessibilidade, revisão de segurança |
 | 8 | Bugfix, README com screenshots, vídeo de 3 min, demo |
 
 Se houver tempo: análise da carteira em lote, tela de auditoria, criação de utilizadores pelo `ADMIN` (D22, US17), consulta de versões de regras.
@@ -182,7 +183,7 @@ Se houver tempo: análise da carteira em lote, tela de auditoria, criação de u
 | Mudanças legais (Reforma Tributária) | Versionamento com validade temporal |
 | Falsa precisão | Premissas e ausências sempre visíveis; simulações rotuladas como estimativa |
 | Vazamento entre tenants | Defesa em 4 camadas + testes e2e |
-| Prazo de 8 semanas | Escopo priorizado; deploy antecipado |
+| Prazo de 8 semanas | Escopo priorizado; o que não depende do fornecedor (D19, `helmet`) é feito antes da semana 7 (D23) |
 | Upload malicioso | Limites de tamanho/linhas, parsers seguros |
 
 ## 10. Questões em aberto
