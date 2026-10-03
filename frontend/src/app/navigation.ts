@@ -5,7 +5,7 @@ export interface NavItem {
   path: string;
   /**
    * Papéis que veem a secção; ausente = todos. Nenhuma restrição está aprovada
-   * ainda (decisão 2a): cada secção recebe `roles` quando a sua regra for definida.
+   * ainda (decisão D21): cada secção recebe `roles` quando a sua regra for definida.
    */
   roles?: readonly UserRole[];
 }

@@ -37,7 +37,7 @@ As pastas dos módulos de negócio (`radar/`, `companies/`, …) são criadas qu
 
 As páginas "Em construção" não têm dados nem regras de negócio. Para implementar uma secção, troque o `PlaceholderPage` da rota pelo componente do módulo. Rotas de detalhe (`/companies/:id`, `/analyses/:id`, …) entram com cada funcionalidade.
 
-Todas as secções aparecem para todos os papéis (decisão 2a). Para restringir uma secção quando a regra for aprovada, acrescente `roles` ao item em `navigation.ts` e proteja também a rota e a API.
+Todas as secções aparecem para todos os papéis (decisão D21). Para restringir uma secção quando a regra for aprovada, acrescente `roles` ao item em `navigation.ts` e proteja também a rota e a API.
 
 ## Layout (mobile-first)
 

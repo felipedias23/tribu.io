@@ -83,7 +83,8 @@ Personas ([definição do produto §3](definicao-do-produto.md#3-público-alvo))
 
 - [ ] CNPJ validado (numérico e alfanumérico, IN RFB 2.229/2024).
 - [ ] CNPJ não se repete dentro do mesmo escritório.
-- [ ] Alterações ficam no registo de auditoria.
+- [ ] `ADMIN` e `ANALYST` criam e editam; `VIEWER` só consulta (403 ao tentar alterar); não há exclusão no MVP (decisão D20).
+- [ ] Alterações ficam no registo de auditoria (a partir da semana 6, quando o `AuditLog` existir; regra S14).
 
 ### US07 — Listar e pesquisar empresas
 
@@ -98,8 +99,9 @@ Personas ([definição do produto §3](definicao-do-produto.md#3-público-alvo))
 **Como** contador, **quero** registar os dados tributários de uma empresa (regime, CNAE, localização, faturamento, folha, período) **para** que ela possa ser analisada.
 
 - [ ] Valores monetários não aceitam negativos.
-- [ ] Campos em falta ficam marcados como ausentes; o sistema não inventa valores.
-- [ ] Alterações ficam no registo de auditoria.
+- [ ] Campos em falta ficam marcados como ausentes (valor nulo, distinto de zero); o sistema não inventa valores (decisão D20).
+- [ ] `ADMIN` e `ANALYST` preenchem e editam; `VIEWER` só consulta (decisão D20).
+- [ ] Alterações ficam no registo de auditoria (a partir da semana 6, quando o `AuditLog` existir; regra S14).
 
 ## Tax Engine
 

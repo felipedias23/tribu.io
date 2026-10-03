@@ -109,6 +109,7 @@ erDiagram
     }
     SimulationScenario {
         uuid id PK
+        uuid accountingFirmId FK
         uuid simulationId FK
         string label "único por simulação"
         jsonb inputs
@@ -133,6 +134,7 @@ erDiagram
     }
     ExternalCompanyMapping {
         uuid id PK
+        uuid accountingFirmId FK
         uuid integrationId FK
         uuid companyId FK
         string externalId
@@ -153,26 +155,26 @@ erDiagram
 
 | Tabela | Restrição / índice | Motivo |
 |---|---|---|
-| User | `email` único; índice `accountingFirmId` | Login por email; listagem por escritório |
+| User | `email` único; único `(id, accountingFirmId)`; índice `accountingFirmId` | Login por email; alvo das FKs compostas de Analysis, Simulation, AuditLog e ImportBatch; listagem por escritório |
 | Company | únicos `(accountingFirmId, cnpj)` e `(id, accountingFirmId)`; índice `(accountingFirmId, legalName)` | CNPJ não repete dentro do escritório; o par `(id, accountingFirmId)` é alvo das FKs compostas |
-| TaxProfile | `companyId` único; FK composta; `CHECK` valores ≥ 0 | Um perfil por empresa, do mesmo tenant |
+| TaxProfile | `companyId` único; FK composta → Company; `CHECK` valores ≥ 0; campos tributários anuláveis | Um perfil por empresa, do mesmo tenant; nulo = dado ausente, distinto de zero (D20) |
 | TaxRule | `code` único | Catálogo global de regras |
 | TaxRuleVersion | único `(taxRuleId, version)`; `CHECK validUntil > validFrom`; `EXCLUDE` sobreposição de vigência | Só uma versão vigente por período |
-| Analysis | FK composta; índices `(accountingFirmId, companyId, executedAt DESC)` e `(accountingFirmId, radarStatus)` | Histórico por empresa; filtros do Radar |
-| Simulation | FK composta | Isolamento entre tenants |
-| SimulationScenario | único `(simulationId, label)` | Cenários com nome distinto |
-| AuditLog | apenas inserção (append-only); índice `(accountingFirmId, createdAt DESC)` | Trilho de auditoria imutável |
-| Integration | único `(accountingFirmId, type, name)` | Integrações nomeadas por escritório |
-| ExternalCompanyMapping | únicos `(integrationId, externalId)` e `(integrationId, companyId)` | IDs externos ficam fora de `Company` |
-| ImportBatch | índice `(accountingFirmId, createdAt DESC)` | Histórico de importações |
+| Analysis | FKs compostas → Company e User; índices `(accountingFirmId, companyId, executedAt DESC)` e `(accountingFirmId, radarStatus)` | Histórico por empresa; filtros do Radar |
+| Simulation | FKs compostas → Company e User; único `(id, accountingFirmId)` | Isolamento entre tenants; alvo da FK composta de SimulationScenario |
+| SimulationScenario | FK composta → Simulation; único `(simulationId, label)` | Cenários com nome distinto, do mesmo tenant da simulação |
+| AuditLog | apenas inserção (append-only); FK composta → User; índice `(accountingFirmId, createdAt DESC)` | Trilho de auditoria imutável |
+| Integration | únicos `(accountingFirmId, type, name)` e `(id, accountingFirmId)` | Integrações nomeadas por escritório; alvo das FKs compostas |
+| ExternalCompanyMapping | FKs compostas → Integration e Company; únicos `(integrationId, externalId)` e `(integrationId, companyId)` | IDs externos ficam fora de `Company` |
+| ImportBatch | FKs compostas → Integration e User; índice `(accountingFirmId, createdAt DESC)` | Histórico de importações |
 
-**FK composta:** as tabelas do tenant que apontam para uma empresa referenciam `(companyId, accountingFirmId)` → `Company(id, accountingFirmId)`. Assim o banco rejeita qualquer registo que ligue um escritório à empresa de outro.
+**FK composta (decisão D15):** toda FK entre tabelas do tenant inclui o escritório, por exemplo `(companyId, accountingFirmId)` → `Company(id, accountingFirmId)`. Por isso as tabelas que são pai (Company, User, Simulation, Integration) têm único `(id, accountingFirmId)`. Assim o banco rejeita qualquer registo que ligue um escritório a dados de outro. As FKs para o catálogo global (`TaxRuleVersion`) são simples. As regras completas estão em [seguranca.md](seguranca.md#schema-d15).
 
 ## Convenções
 
 - IDs `UUID`.
 - Valores monetários em `Decimal(15,2)`.
-- Toda entidade do tenant tem `accountingFirmId`; `TaxRule` e `TaxRuleVersion` são catálogo global.
+- Toda entidade do tenant tem `accountingFirmId`, incluindo as tabelas filhas (D15); `TaxRule` e `TaxRuleVersion` são catálogo global.
 - `Analysis` é imutável: uma nova execução cria um novo registo.
 - `AnalysisInput` da especificação é guardado como `inputSnapshot` (JSONB) em `Analysis` (decisão D6).
 - O estado do Tax Radar é derivado (não é tabela); `Analysis.radarStatus` guarda o estado calculado em cada execução.

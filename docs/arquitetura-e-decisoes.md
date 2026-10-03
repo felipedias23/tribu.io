@@ -1,6 +1,6 @@
 # Relatório Técnico — Fase 1 (Análise e Arquitetura)
 
-> Status: **aprovado** em 2026-09-26. Decisões D10–D14 aprovadas em 2026-09-27 (autenticação, semana 2). Decisões D15–D20 aprovadas em 2026-09-28 (auditoria de segurança, [seguranca.md](seguranca.md)).
+> Status: **aprovado** em 2026-09-26. Decisões D10–D14 aprovadas em 2026-09-27 (autenticação, semana 2). Decisões D15–D20 aprovadas em 2026-09-28 (auditoria de segurança, [seguranca.md](seguranca.md)). D21, aprovada em 2026-09-27 com o layout base, registada em 2026-09-28.
 > Fontes: [definicao-do-produto.md](definicao-do-produto.md), [instrucoes-fase-analise.md](instrucoes-fase-analise.md), [regras-academicas.md](regras-academicas.md), [CLAUDE.md](CLAUDE.md).
 
 ## 1. Estado inicial
@@ -33,7 +33,8 @@
 | D18 | Papéis do banco | Antes do deploy: papel da API sem superuser nem DDL; migrations com papel próprio |
 | D19 | Ambiente de produção | Com `NODE_ENV=production`, a API não arranca com valores de exemplo (`change-me…`) nem com `COOKIE_SECURE=false` |
 | D20 | Company e TaxProfile (semana 3) | Leitura para todos os papéis; criar/editar Company e TaxProfile para `ADMIN` e `ANALYST`; `VIEWER` só lê; sem `DELETE` no MVP. Campos do TaxProfile anuláveis para distinguir ausente de zero |
-| — | Banco | PostgreSQL + Prisma (justificativa em ADR na semana 1) |
+| D21 | Navegação por papel | Todas as secções aparecem para todos os papéis; cada secção recebe restrição quando a regra da sua funcionalidade for aprovada, protegida também na rota e na API (esconder no frontend é só conveniência, S24) |
+| — | Banco | PostgreSQL + Prisma ([ADR 0001](adr/0001-postgresql-prisma.md)) |
 | — | Forma de trabalho | Projeto individual; PRs revistos pelo professor; Conventional Commits |
 
 ## 3. Arquitetura
@@ -69,9 +70,9 @@ Módulos: `common`, `config`, `prisma`, `auth`, `users`, `accounting-firms`, `co
 Schema compartilhado com `accountingFirmId` em toda entidade do tenant, incluindo as tabelas filhas (D15). Isolamento em 4 camadas:
 
 1. `tenantId` vem **apenas** da sessão autenticada (`@CurrentTenant()`, tipo `TenantId`), nunca do request. O guard identifica o utilizador pelo JWT e lê o tenant na BD (D10).
-2. Todo acesso filtra por `{ id, accountingFirmId }`; recurso de outro tenant → **404**. Uma Client Extension do Prisma recusa queries sobre tabelas do tenant sem esse filtro (D16).
+2. Todo acesso filtra por `{ id, accountingFirmId }`; recurso de outro tenant → **404**. Uma Client Extension do Prisma recusa queries sobre tabelas do tenant sem esse filtro (D16; pendente, semana 3).
 3. FKs compostas `(companyId, accountingFirmId)` → `Company(id, accountingFirmId)` impedem referências cruzadas no próprio banco.
-4. Testes e2e com dois escritórios para cada recurso, mais inventário de rotas e catálogo do schema que obrigam cada rota e tabela nova a ter essa cobertura (D17).
+4. Testes e2e com dois escritórios para cada recurso, mais inventário de rotas e catálogo do schema que obrigam cada rota e tabela nova a ter essa cobertura (D17; pendente, semana 3). O estado de cada mecanismo está em [seguranca.md](seguranca.md#estado-de-implementação).
 
 RLS do PostgreSQL fica como endurecimento futuro, com gatilhos definidos em [seguranca.md](seguranca.md#endurecimento-futuro).
 
@@ -110,18 +111,18 @@ Cada sinal traz `reasons[]` (`code`, `message`, regra, versão, dados usados, au
 | Entidade | Chaves / constraints principais |
 |---|---|
 | AccountingFirm | `cnpj` único (opcional) |
-| User | `email` único (minúsculas); índice `accountingFirmId`; `role`, `tokenVersion` |
+| User | `email` único (minúsculas); único `(id, accountingFirmId)`; índice `accountingFirmId`; `role`, `tokenVersion` |
 | Company | únicos `(accountingFirmId, cnpj)` e `(id, accountingFirmId)`; índice `(accountingFirmId, legalName)` |
-| TaxProfile | 1:1 com Company (`companyId` único); FK composta; CHECK valores ≥ 0 |
+| TaxProfile | 1:1 com Company (`companyId` único); FK composta; CHECK valores ≥ 0; campos anuláveis (D20) |
 | TaxRule | `code` único |
 | TaxRuleVersion | único `(taxRuleId, version)`; CHECK `validUntil > validFrom`; EXCLUDE sobreposição |
-| Analysis | FK composta; índices `(accountingFirmId, companyId, executedAt DESC)`, `(accountingFirmId, radarStatus)` |
-| Simulation | FK composta; 1:N SimulationScenario |
+| Analysis | FKs compostas → Company e User; índices `(accountingFirmId, companyId, executedAt DESC)`, `(accountingFirmId, radarStatus)` |
+| Simulation | FKs compostas → Company e User; único `(id, accountingFirmId)`; 1:N SimulationScenario |
 | SimulationScenario | `accountingFirmId`; FK composta → Simulation; único `(simulationId, label)` |
-| AuditLog | append-only; índice `(accountingFirmId, createdAt DESC)` |
-| Integration | único `(accountingFirmId, type, name)` |
+| AuditLog | append-only; FK composta → User; índice `(accountingFirmId, createdAt DESC)` |
+| Integration | únicos `(accountingFirmId, type, name)` e `(id, accountingFirmId)` |
 | ExternalCompanyMapping | `accountingFirmId`; FKs compostas → Integration e Company; únicos `(integrationId, externalId)`, `(integrationId, companyId)` |
-| ImportBatch | índice `(accountingFirmId, createdAt DESC)` |
+| ImportBatch | FKs compostas → Integration e User; índice `(accountingFirmId, createdAt DESC)` |
 
 Regras de schema do tenant (D15): toda tabela do tenant tem `accounting_firm_id NOT NULL` e índice que começa por ela; tabelas que podem ser pai têm único `(id, accountingFirmId)`; FKs entre tabelas do tenant são compostas; unicidades de negócio incluem o tenant. `TaxRule` e `TaxRuleVersion` são globais e só mudam por migration/seed. Valores monetários em `Decimal(15,2)`. IDs UUID. Migrations via Prisma Migrate (SQL adicional para CHECK/EXCLUDE). Seed idempotente e fictício: 2 escritórios, um usuário por papel, ~30 empresas cobrindo todos os estados do Radar, primeira regra publicada; senhas de demonstração via variáveis de ambiente.
 
@@ -146,7 +147,7 @@ Erros em formato padronizado com detalhes por campo, exibidos de forma clara no 
 
 ## 6. Frontend
 
-React Router, TanStack Query, `AuthContext`, CSS Modules, layout **responsivo mobile-first** (Radar em cartões no telemóvel). Testes com Vitest, Testing Library e MSW.
+React Router, TanStack Query (entra com o primeiro módulo de negócio), `AuthContext`, CSS Modules, layout **responsivo mobile-first** (Radar em cartões no telemóvel). Testes com Vitest, Testing Library e MSW.
 
 Rotas: `/login`, `/register`, `/radar` (inicial), `/companies`, `/companies/:id`, `/analyses/:id`, `/companies/:id/simulations/new`, `/simulations/:id`, `/imports`, `/imports/new`, `/settings/*`, `/audit`.
 
@@ -163,7 +164,7 @@ Rotas: `/login`, `/register`, `/radar` (inicial), `/companies`, `/companies/:id`
 | 0 | Repositório, Trello, convite ao professor, dados enviados; especificações em `docs/` |
 | 1 | User stories no Trello, diagrama ER, ADR PostgreSQL, compose com 3 serviços "hello world", CI inicial |
 | 2 | **Checkpoint 1** — Prisma, migrations, seed, registo/login/logout, tenant e papéis, testes de isolamento, layout base |
-| 3 | Company + TaxProfile ponta a ponta; primeiro deploy público |
+| 3 | Verificação de tenant no Prisma e testes de isolamento (D16, D17) antes de Company; Company + TaxProfile ponta a ponta; D18 e D19 e primeiro deploy público |
 | 4 | **Checkpoint 2** — Tax Engine, Analysis, Radar com explicação |
 | 5 | Importação CSV/XLSX com prévia e confirmação |
 | 6 | Simulações, histórico, auditoria — **feature freeze** |
@@ -182,3 +183,11 @@ Se houver tempo: análise da carteira em lote, tela de auditoria, gestão de usu
 | Vazamento entre tenants | Defesa em 4 camadas + testes e2e |
 | Prazo de 8 semanas | Escopo priorizado; deploy antecipado |
 | Upload malicioso | Limites de tamanho/linhas, parsers seguros |
+
+## 10. Questões em aberto
+
+Pontos em que os documentos ainda não têm uma resposta única. Cada um é resolvido por uma decisão (Dxx) antes do prazo indicado.
+
+| # | Questão | Prazo |
+|---|---|---|
+| Q1 | **Estado do Radar: calculado ou guardado.** A §3.5 define o estado como derivado (função pura), mas a §4 e o [modelo de dados](modelo-dados.md) guardam `Analysis.radarStatus`, com índice para filtrar. Um estado guardado fica desatualizado quando a versão da regra é substituída (`REVISAR_REGRA`) ou o perfil muda, e empresas sem análise (`DADOS_INCOMPLETOS`) não têm onde o guardar. Falta decidir se o Radar é sempre calculado no pedido (e `radarStatus` é só o histórico da execução) ou se existe um estado atual guardado e recalculado | Antes da migration de `analyses` (semana 4) |
