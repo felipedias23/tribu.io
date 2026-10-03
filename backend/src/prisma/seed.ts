@@ -11,6 +11,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as argon2 from 'argon2';
 import { z } from 'zod';
+import { cnpjCheckDigits } from '../companies/cnpj';
 import { databaseUrlSchema, parseOrThrow } from '../config/env.validation';
 import { PrismaClient, Role } from '../generated/prisma/client';
 
@@ -68,6 +69,50 @@ export const SEED_USERS = [
   },
 ] as const;
 
+/** Nome e nome fantasia das empresas fictícias de cada escritório (US06). */
+const COMPANY_NAMES: Record<'A' | 'B', [string, string | null][]> = {
+  A: [
+    ['Oficina Exemplo Ltda', 'Oficina Exemplo'],
+    ['Clínica Modelo Ltda', 'Clínica Modelo'],
+    ['Estúdio Fictício de Design Ltda', null],
+    ['Padaria Imaginária Ltda', 'Pão Imaginário'],
+    ['Consultoria Demonstração Ltda', null],
+    ['Transportes Ilustrativos Ltda', 'TransIlustra'],
+  ],
+  B: [
+    ['Laboratório Hipotético Ltda', 'LabHipo'],
+    ['Escola Simulada Ltda', 'Escola Simulada'],
+    ['Mercado Inventado Ltda', null],
+    ['Arquitetura Exemplar Ltda', 'Exemplar Arquitetura'],
+    ['Software Fictício Ltda', 'FicSoft'],
+    ['Restaurante Demonstrativo Ltda', null],
+  ],
+};
+
+/**
+ * ID fixo e CNPJ fictício derivados da posição. A raiz do CNPJ começa por
+ * TRIBU, para não coincidir com empresas reais, e os dígitos verificadores
+ * são válidos.
+ */
+export const SEED_COMPANIES = (
+  [
+    [ALFA, 'A'],
+    [BETA, 'B'],
+  ] as const
+).flatMap(([firm, letter]) =>
+  COMPANY_NAMES[letter].map(([legalName, tradeName], index) => {
+    const n = String(index + 1).padStart(6, '0');
+    const base = `TRIBU${letter}${n}`;
+    return {
+      id: `${firm.id.slice(0, 8)}-c000-4000-8000-000000${n}`,
+      accountingFirmId: firm.id,
+      cnpj: `${base}${cnpjCheckDigits(base)}`,
+      legalName,
+      tradeName,
+    };
+  }),
+);
+
 const seedEnvSchema = z.object({
   DATABASE_URL: databaseUrlSchema,
   SEED_PASSWORD: z
@@ -101,9 +146,21 @@ export async function seed(prisma: PrismaClient, password: string) {
         update: data,
       });
     }
+
+    for (const { id, ...company } of SEED_COMPANIES) {
+      await tx.company.upsert({
+        where: { id },
+        create: { id, ...company },
+        update: company,
+      });
+    }
   });
 
-  return { firms: SEED_FIRMS.length, users: SEED_USERS.length };
+  return {
+    firms: SEED_FIRMS.length,
+    users: SEED_USERS.length,
+    companies: SEED_COMPANIES.length,
+  };
 }
 
 async function main(): Promise<void> {
@@ -114,7 +171,7 @@ async function main(): Promise<void> {
   try {
     const result = await seed(prisma, env.SEED_PASSWORD);
     console.log(
-      `[seed] OK: ${result.firms} escritórios e ${result.users} utilizadores.`,
+      `[seed] OK: ${result.firms} escritórios, ${result.users} utilizadores e ${result.companies} empresas.`,
     );
   } finally {
     await prisma.$disconnect();

@@ -40,7 +40,8 @@ model AccountingFirm {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  users User[]
+  users     User[]
+  companies Company[]
 
   @@map("accounting_firms")
 }
@@ -65,4 +66,28 @@ model User {
 
   @@index([accountingFirmId])
   @@map("users")
+}
+
+/// Empresa cliente do escritório (US06). IDs de sistemas externos não entram
+/// aqui: ficam em ExternalCompanyMapping (camada de integração).
+model Company {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountingFirmId String   @map("accounting_firm_id") @db.Uuid
+  /// 14 caracteres sem pontuação, numérico ou alfanumérico (CHECK na migration).
+  cnpj             String   @db.Char(14)
+  /// Razão social.
+  legalName        String   @map("legal_name")
+  /// Nome fantasia; opcional.
+  tradeName        String?  @map("trade_name")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  accountingFirm AccountingFirm @relation(fields: [accountingFirmId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  /// O CNPJ não se repete dentro do escritório (regra S9).
+  @@unique([accountingFirmId, cnpj])
+  /// Alvo das FKs compostas das tabelas filhas (decisão D15).
+  @@unique([id, accountingFirmId])
+  @@index([accountingFirmId, legalName])
+  @@map("companies")
 }

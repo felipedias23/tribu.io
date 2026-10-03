@@ -2,7 +2,13 @@ import { randomUUID } from 'node:crypto';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { PrismaClient, Role } from '../src/generated/prisma/client';
-import { SEED_FIRMS, SEED_USERS, seed } from '../src/prisma/seed';
+import { isValidCnpj } from '../src/companies/cnpj';
+import {
+  SEED_COMPANIES,
+  SEED_FIRMS,
+  SEED_USERS,
+  seed,
+} from '../src/prisma/seed';
 import { createTestPrisma, testEnv } from './support/prisma';
 
 // Testes de persistência contra PostgreSQL real, com as migrations aplicadas
@@ -230,6 +236,19 @@ describe('Banco de dados (e2e)', () => {
       for (const user of users) {
         expect(user.passwordHash).toMatch(/^\$argon2id\$/);
         expect(user.passwordHash).not.toContain(password);
+      }
+    });
+
+    it('cria as empresas fictícias com CNPJ válido, sem duplicar', async () => {
+      await seed(prisma, password);
+      const companies = await prisma.company.findMany({
+        where: { id: { in: SEED_COMPANIES.map((company) => company.id) } },
+      });
+
+      expect(companies).toHaveLength(SEED_COMPANIES.length);
+      for (const company of companies) {
+        expect(isValidCnpj(company.cnpj)).toBe(true);
+        expect(company.cnpj).toMatch(/^TRIBU/);
       }
     });
   });
