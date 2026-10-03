@@ -64,7 +64,8 @@ erDiagram
         string state
         decimal revenue12m "Decimal(15,2)"
         decimal payroll12m "Decimal(15,2)"
-        date referencePeriod
+        date referencePeriod "1.º dia do mês"
+        datetime createdAt
         datetime updatedAt
     }
     TaxRule {
@@ -158,7 +159,7 @@ erDiagram
 |---|---|---|
 | User | `email` único; único `(id, accountingFirmId)`; índice `accountingFirmId` | Login por email; alvo das FKs compostas de Analysis, Simulation, AuditLog e ImportBatch; listagem por escritório |
 | Company | únicos `(accountingFirmId, cnpj)` e `(id, accountingFirmId)`; índice `(accountingFirmId, legalName)` | CNPJ não repete dentro do escritório; o par `(id, accountingFirmId)` é alvo das FKs compostas |
-| TaxProfile | `companyId` único; FK composta → Company; `CHECK` valores ≥ 0; campos tributários anuláveis | Um perfil por empresa, do mesmo tenant; nulo = dado ausente, distinto de zero (D20) |
+| TaxProfile | único `(companyId, accountingFirmId)` (um perfil por empresa); FK composta → Company; `CHECK` valores ≥ 0; campos tributários anuláveis | Um perfil por empresa, do mesmo tenant; nulo = dado ausente, distinto de zero (D20) |
 | TaxRule | `code` único | Catálogo global de regras |
 | TaxRuleVersion | único `(taxRuleId, version)`; `CHECK validUntil > validFrom`; `EXCLUDE` sobreposição de vigência | Só uma versão vigente por período |
 | Analysis | FKs compostas → Company e User; índices `(accountingFirmId, companyId, executedAt DESC)` e `(accountingFirmId, radarStatus)` | Histórico por empresa; filtros do Radar |
