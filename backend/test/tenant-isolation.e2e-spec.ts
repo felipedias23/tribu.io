@@ -4,6 +4,8 @@ import request from 'supertest';
 import { hashPassword } from '../src/auth/password';
 import { SESSION_COOKIE } from '../src/auth/session-cookie';
 import { PrismaClient, Role } from '../src/generated/prisma/client';
+import { PrismaService } from '../src/prisma/prisma.service';
+import { TenantScopeViolationError } from '../src/prisma/tenant-scope';
 import { createTestApp } from './support/app';
 import { createTestPrisma } from './support/prisma';
 
@@ -96,6 +98,17 @@ describe('Isolamento entre tenants (e2e)', () => {
     await prisma.accountingFirm.deleteMany({ where: { id: { in: firmIds } } });
     await prisma.$disconnect();
     await app.close();
+  });
+
+  it('o PrismaService da aplicação recusa queries sem tenant (D16)', async () => {
+    const scoped = app.get<PrismaService>(PrismaService);
+
+    await expect(scoped.user.findMany()).rejects.toThrow(
+      TenantScopeViolationError,
+    );
+    await expect(
+      scoped.user.findMany({ where: { accountingFirmId: a.firmId } }),
+    ).resolves.toHaveLength(3);
   });
 
   describe('GET /users', () => {

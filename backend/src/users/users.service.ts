@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -22,7 +23,7 @@ const USER_SELECT = {
  */
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   list(tenantId: TenantId): Promise<UserResponse[]> {
     return this.prisma.user.findMany({
@@ -63,7 +64,7 @@ export class UsersService {
    * que duas despromoções simultâneas não deixem o escritório sem ADMIN.
    */
   private async ensureAnotherAdmin(
-    tx: Prisma.TransactionClient,
+    tx: Pick<Prisma.TransactionClient, '$queryRaw'>,
     tenantId: TenantId,
   ): Promise<void> {
     const admins = await tx.$queryRaw<{ id: string }[]>`

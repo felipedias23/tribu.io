@@ -32,6 +32,25 @@ export default tseslint.config(
     },
   },
   {
+    // Regra S5: consultas sem tenant só no módulo auth.
+    files: ['src/**/*.ts'],
+    ignores: ['src/auth/**', 'src/prisma/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/unscoped-prisma.service'],
+              message:
+                'O cliente unscoped só é usado no módulo auth (regra S5). Use PrismaService.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Asserções do Jest/supertest trabalham com valores `any` por natureza.
     files: ['**/*.spec.ts', 'test/**/*.ts'],
     rules: {
