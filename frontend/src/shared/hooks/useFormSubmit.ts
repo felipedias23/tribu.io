@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react';
-import { ApiError } from '../shared/api/http';
+import { ApiError } from '../api/http';
 
 /**
- * Estado comum dos formulários de autenticação: envio em curso e erros vindos
+ * Estado comum dos formulários: envio em curso e erros vindos
  * da API (mensagem geral e mensagens por campo).
  */
 export function useFormSubmit(action: (form: FormData) => Promise<void>) {
