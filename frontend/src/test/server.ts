@@ -18,4 +18,5 @@ export function errorResponse(status: number, message: string, details?: { field
 export const server = setupServer(
   http.get('/api/v1/health', () => HttpResponse.json({ status: 'ok' })),
   http.get('/api/v1/auth/me', () => errorResponse(401, 'Sessão inválida ou expirada.')),
+  http.get('/api/v1/companies', () => HttpResponse.json({ items: [], total: 0, page: 1, pageSize: 20 })),
 );

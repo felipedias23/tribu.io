@@ -1,12 +1,12 @@
 # Frontend: layout base, rotas e sessão
 
-React 19 + TypeScript + Vite, com React Router e CSS Modules (relatório §6). Este documento descreve o layout base da Semana 2 e as regras a seguir ao acrescentar páginas.
+React 19 + TypeScript + Vite, com React Router, TanStack Query e CSS Modules (relatório §6). Este documento descreve o layout base, os módulos já implementados e as regras a seguir ao acrescentar páginas.
 
 ## Estrutura
 
 ```text
 frontend/src/
-├── main.tsx                 # AuthProvider + RouterProvider
+├── main.tsx                 # QueryClientProvider + AuthProvider + RouterProvider
 ├── app/
 │   ├── routes.tsx           # mapa de rotas
 │   ├── AppLayout.tsx        # cabeçalho + navegação + conteúdo (páginas autenticadas)
@@ -15,16 +15,18 @@ frontend/src/
 │   ├── NotFoundPage.tsx     # 404 dentro do layout
 │   └── ErrorPage.tsx        # erro inesperado (errorElement do router)
 ├── auth/                    # sessão, login, registo, RequireAuth, AuthLayout
+├── companies/               # lista, cadastro e detalhe de empresas (US06, US07)
 ├── components/ApiStatus.tsx # estado da API (GET /health) nas páginas de login e registo
 ├── shared/
 │   ├── api/http.ts          # cliente HTTP, ApiError, aviso de sessão expirada
+│   ├── api/queryClient.ts   # configuração do TanStack Query
 │   ├── components/          # TextField, PlaceholderPage
-│   └── hooks/useDocumentTitle.ts
+│   └── hooks/               # useDocumentTitle, useFormSubmit
 ├── styles/global.css        # tokens de design
 └── test/                    # MSW (server.ts) e renderRoute
 ```
 
-As pastas dos módulos de negócio (`radar/`, `companies/`, …) são criadas quando cada módulo for implementado.
+As pastas dos outros módulos de negócio (`radar/`, `imports/`, …) são criadas quando cada módulo for implementado.
 
 ## Rotas
 
@@ -33,12 +35,22 @@ As pastas dos módulos de negócio (`radar/`, `companies/`, …) são criadas qu
 | `/login`, `/register` | público (com sessão → página de origem ou `/radar`) | formulários |
 | `/` | sessão | redireciona para `/radar` |
 | `/radar` | sessão | **página inicial**, "Em construção" |
-| `/companies`, `/imports`, `/audit`, `/settings/*` | sessão | "Em construção" |
+| `/companies` | sessão | lista de empresas com pesquisa e paginação (pesquisa e página no URL) |
+| `/companies/new` | sessão; formulário só para `ADMIN` e `ANALYST` | cadastro de empresa |
+| `/companies/:id` | sessão; editar só para `ADMIN` e `ANALYST` | dados da empresa e edição |
+| `/imports`, `/audit`, `/settings/*` | sessão | "Em construção" |
 | qualquer outra | sessão | 404 dentro do layout |
 
-As páginas "Em construção" não têm dados nem regras de negócio. Para implementar uma secção, troque o `PlaceholderPage` da rota pelo componente do módulo. Rotas de detalhe (`/companies/:id`, `/analyses/:id`, …) entram com cada funcionalidade.
+As páginas "Em construção" não têm dados nem regras de negócio. Para implementar uma secção, troque o `PlaceholderPage` da rota pelo componente do módulo. Rotas de detalhe (`/analyses/:id`, …) entram com cada funcionalidade.
 
 Todas as secções aparecem para todos os papéis (decisão D21). Para restringir uma secção quando a regra for aprovada, acrescente `roles` ao item em `navigation.ts` e proteja também a rota e a API.
+
+## Dados da API (TanStack Query)
+
+- Leituras usam `useQuery` com as chaves de cada módulo (ex.: `companyKeys` em `companies/api.ts`). Depois de gravar, a página atualiza o detalhe no cache e invalida as listas do módulo.
+- Erros 4xx não são repetidos; falhas de rede e 5xx tentam mais uma vez.
+- O cache é limpo quando deixa de haver sessão, no logout ou quando a sessão expira (regra S24).
+- Ações que o papel não permite ficam escondidas (ex.: `canEditCompanies`), mas quem autoriza é a API.
 
 ## Layout (mobile-first)
 
@@ -78,8 +90,10 @@ Os estilos base são os do telemóvel; o desktop aplica-se com `@media (min-widt
 | `auth/session.test.tsx` | sessão expirada (401 global e ao voltar ao separador), regresso à origem |
 | `app/layout.test.tsx` | layout, secções, `aria-current`, títulos, 404, skip link, menu móvel |
 | `app/navigation.test.ts` | secções por papel |
+| `companies/companies.test.tsx` | lista, pesquisa, paginação, cadastro com erro por campo, edição, VIEWER sem ações, 404, cache limpo ao sair |
+| `companies/cnpj.test.ts` | máscara do CNPJ numérico e alfanumérico |
 | `app/ErrorPage.test.tsx` | página de erro sem detalhes técnicos |
 | `shared/api/http.test.ts` | erros padronizados, 204, aviso de 401 fora de `/auth/*` |
 | `components/ApiStatus.test.tsx` | estado da API: online, erro do health check e sem resposta |
 
-O jsdom não aplica CSS: o comportamento responsivo (painel escondido no telemóvel, barra lateral no desktop) é verificado no browser a 375px e 1280px.
+O jsdom não aplica CSS: o comportamento responsivo (painel escondido no telemóvel, barra lateral no desktop, lista de empresas em cartões no telemóvel) é verificado no browser a 375px e 1280px.
