@@ -15,6 +15,7 @@ frontend/src/
 │   ├── NotFoundPage.tsx     # 404 dentro do layout
 │   └── ErrorPage.tsx        # erro inesperado (errorElement do router)
 ├── auth/                    # sessão, login, registo, RequireAuth, AuthLayout
+├── components/ApiStatus.tsx # estado da API (GET /health) nas páginas de login e registo
 ├── shared/
 │   ├── api/http.ts          # cliente HTTP, ApiError, aviso de sessão expirada
 │   ├── components/          # TextField, PlaceholderPage
@@ -79,5 +80,6 @@ Os estilos base são os do telemóvel; o desktop aplica-se com `@media (min-widt
 | `app/navigation.test.ts` | secções por papel |
 | `app/ErrorPage.test.tsx` | página de erro sem detalhes técnicos |
 | `shared/api/http.test.ts` | erros padronizados, 204, aviso de 401 fora de `/auth/*` |
+| `components/ApiStatus.test.tsx` | estado da API: online, erro do health check e sem resposta |
 
 O jsdom não aplica CSS: o comportamento responsivo (painel escondido no telemóvel, barra lateral no desktop) é verificado no browser a 375px e 1280px.

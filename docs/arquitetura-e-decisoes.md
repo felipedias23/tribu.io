@@ -1,6 +1,6 @@
 # Relatório Técnico — Fase 1 (Análise e Arquitetura)
 
-> Status: **aprovado** em 2026-09-26. Decisões D10–D14 aprovadas em 2026-09-27 (autenticação, semana 2). Decisões D15–D20 aprovadas em 2026-09-28 (auditoria de segurança, [seguranca.md](seguranca.md)). D21, aprovada em 2026-09-27 com o layout base, registada em 2026-09-28.
+> Status: **aprovado** em 2026-09-26. Decisões D10–D14 aprovadas em 2026-09-27 (autenticação, semana 2). Decisões D15–D20 aprovadas em 2026-09-28 (auditoria de segurança, [seguranca.md](seguranca.md)). D21, aprovada em 2026-09-27 com o layout base, registada em 2026-09-28. D22 aprovada em 2026-10-02 (fecho da semana 2).
 > Fontes: [definicao-do-produto.md](definicao-do-produto.md), [instrucoes-fase-analise.md](instrucoes-fase-analise.md), [regras-academicas.md](regras-academicas.md), [CLAUDE.md](CLAUDE.md).
 
 ## 1. Estado inicial
@@ -34,6 +34,7 @@
 | D19 | Ambiente de produção | Com `NODE_ENV=production`, a API não arranca com valores de exemplo (`change-me…`) nem com `COOKIE_SECURE=false` |
 | D20 | Company e TaxProfile (semana 3) | Leitura para todos os papéis; criar/editar Company e TaxProfile para `ADMIN` e `ANALYST`; `VIEWER` só lê; sem `DELETE` no MVP. Campos do TaxProfile anuláveis para distinguir ausente de zero |
 | D21 | Navegação por papel | Todas as secções aparecem para todos os papéis; cada secção recebe restrição quando a regra da sua funcionalidade for aprovada, protegida também na rota e na API (esconder no frontend é só conveniência, S24) |
+| D22 | Criação de utilizadores | `POST /users` (o `ADMIN` acrescenta colegas ao escritório) sai da semana 2 e passa à lista de extras (US17). A forma de o colega receber o acesso (password temporária ou link por email) é decidida antes da implementação. Na semana 2, a gestão da equipa é editar nome e papel (US05) |
 | — | Banco | PostgreSQL + Prisma ([ADR 0001](adr/0001-postgresql-prisma.md)) |
 | — | Forma de trabalho | Projeto individual; PRs revistos pelo professor; Conventional Commits |
 
@@ -132,7 +133,7 @@ Regras de schema do tenant (D15): toda tabela do tenant tem `accounting_firm_id 
 |---|---|
 | auth | `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/me` |
 | accounting-firms | `GET`, `PATCH /accounting-firm` |
-| users | `GET /users`, `POST /users`, `PATCH /users/:id` |
+| users | `GET /users`, `PATCH /users/:id`; `POST /users` é extra (D22) |
 | companies | `GET /companies`, `POST /companies`, `GET /companies/:id`, `PATCH /companies/:id` |
 | tax-profiles | `GET`, `PUT /companies/:id/tax-profile` |
 | integrations | `POST /imports`, `GET /imports`, `GET /imports/:id`, `POST /imports/:id/confirm`, `POST /imports/:id/cancel` |
@@ -171,7 +172,7 @@ Rotas: `/login`, `/register`, `/radar` (inicial), `/companies`, `/companies/:id`
 | 7 | Testes, CI verde, deploy final, acessibilidade, revisão de segurança |
 | 8 | Bugfix, README com screenshots, vídeo de 3 min, demo |
 
-Se houver tempo: análise da carteira em lote, tela de auditoria, gestão de usuários além do ADMIN inicial, consulta de versões de regras.
+Se houver tempo: análise da carteira em lote, tela de auditoria, criação de utilizadores pelo `ADMIN` (D22, US17), consulta de versões de regras.
 
 ## 9. Riscos
 

@@ -28,6 +28,7 @@ Personas ([definição do produto §3](definicao-do-produto.md#3-público-alvo))
 | US14 | Simular cenários | Simulação | 6 |
 | US15 | Consultar o histórico de análises | Histórico | 6 |
 | US16 | Consultar o registo de auditoria | Auditoria | 6 |
+| US17 | Acrescentar colegas ao escritório | Multi-tenancy | extra |
 
 ## Autenticação
 
@@ -68,12 +69,22 @@ Personas ([definição do produto §3](definicao-do-produto.md#3-público-alvo))
 
 ### US05 — Gerir utilizadores e papéis
 
-**Como** sócio, **quero** convidar colegas e definir o que cada um pode fazer **para** controlar o acesso aos dados.
+**Como** sócio, **quero** definir o nome e o papel de cada colega **para** controlar o acesso aos dados.
 
 - [ ] Só `ADMIN` altera utilizadores (nome e papel) — decisão D13.
 - [ ] O escritório nunca fica sem `ADMIN`.
 - [ ] Ações proibidas pelo papel devolvem 403.
 - [ ] As permissões de `ANALYST` e `VIEWER` em cada funcionalidade são definidas com essa funcionalidade.
+
+Acrescentar colegas ao escritório é a US17 (decisão D22).
+
+### US17 — Acrescentar colegas ao escritório
+
+**Como** sócio, **quero** acrescentar colegas ao meu escritório **para** que trabalhem comigo no Tribu.io.
+
+- [ ] Só `ADMIN` cria utilizadores, sempre no próprio escritório — decisões D13 e D22.
+- [ ] Email já registado devolve 409, com rate limit contra enumeração (regra S9).
+- [ ] A forma de o colega receber o acesso é decidida antes da implementação — decisão D22.
 
 ## Empresas
 
