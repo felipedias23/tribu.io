@@ -1,0 +1,236 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 60rem;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  overflow-wrap: anywhere;
+}
+
+.back {
+  align-self: flex-start;
+  font-size: var(--font-size-sm);
+}
+
+.primaryButton,
+.secondaryButton {
+  display: inline-block;
+  font: inherit;
+  font-weight: 600;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.primaryButton {
+  border: 0;
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.secondaryButton {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-primary);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.search {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.alert {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+.empty {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.cnpj {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/*
+ * Telemóvel: cada linha da tabela é um cartão, com o nome da coluna antes do
+ * valor (data-label). Desktop: tabela normal.
+ */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table thead {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.table tr {
+  display: block;
+  margin-bottom: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.table td {
+  display: block;
+  padding: var(--space-1) 0;
+}
+
+.table td::before {
+  content: attr(data-label);
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* A razão social é o título do cartão: dispensa o rótulo. */
+.table td:first-child {
+  font-weight: 600;
+}
+
+.table td:first-child::before {
+  content: none;
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.pagination p {
+  flex-basis: 100%;
+  order: -1;
+  margin: 0;
+  text-align: center;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 32rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.details {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.details dt {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.details dd {
+  margin: 0;
+}
+
+@media (min-width: 48rem) {
+  .table {
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+  }
+
+  .table thead {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+  }
+
+  .table tr {
+    display: table-row;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .table th,
+  .table td {
+    display: table-cell;
+    padding: var(--space-3);
+    text-align: left;
+  }
+
+  .table th {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .table td::before {
+    content: none;
+  }
+
+  .table td:first-child {
+    font-weight: normal;
+  }
+
+  .pagination p {
+    flex-basis: auto;
+    order: 0;
+  }
+
+  .details {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
