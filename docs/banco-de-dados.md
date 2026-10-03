@@ -4,13 +4,14 @@ PostgreSQL 17 com Prisma 7. O modelo completo planeado para o MVP está no [rela
 
 ## Estado atual
 
-Semana 3: o tenant, os utilizadores e as empresas. As outras entidades (TaxProfile, …) entram por migration na semana da respetiva funcionalidade.
+Semana 3: o tenant, os utilizadores, as empresas e os perfis tributários. As outras entidades (TaxRule, Analysis, …) entram por migration na semana da respetiva funcionalidade.
 
 | Tabela | Modelo Prisma | Finalidade |
 |---|---|---|
 | `accounting_firms` | `AccountingFirm` | Escritório de contabilidade; é o **tenant** |
 | `users` | `User` | Utilizador de um escritório, com papel `ADMIN`, `ANALYST` ou `VIEWER` |
 | `companies` | `Company` | Empresa cliente do escritório (US06) |
+| `tax_profiles` | `TaxProfile` | Dados tributários de uma empresa, 1:1 (US08) |
 
 Tabelas e colunas em `snake_case` no PostgreSQL (`@@map`/`@map`); no código TypeScript os nomes ficam em `camelCase`.
 
@@ -47,6 +48,24 @@ Tabelas e colunas em `snake_case` no PostgreSQL (`@@map`/`@map`); no código Typ
 | `trade_name` | `text` | nome fantasia; opcional, `NULL` em vez de texto vazio (`CHECK`) |
 | `created_at`, `updated_at` | `timestamptz(3)` | preenchidos automaticamente |
 
+### `tax_profiles`
+
+Todos os campos tributários aceitam `NULL`, que significa **dado ausente**, diferente de zero (decisão D20). As restrições só se aplicam quando há valor.
+
+| Coluna | Tipo | Regras |
+|---|---|---|
+| `id` | `uuid` | PK, `gen_random_uuid()` |
+| `accounting_firm_id` | `uuid` | obrigatório, indexado; parte da FK composta para `companies` |
+| `company_id` | `uuid` | obrigatório; um perfil por empresa |
+| `tax_regime` | enum `tax_regime` | `SIMPLES_NACIONAL`, `LUCRO_PRESUMIDO`, `LUCRO_REAL` |
+| `cnae` | `char(7)` | 7 dígitos sem pontuação (`CHECK`) |
+| `city` | `text` | nome do município, não vazio (`CHECK`) |
+| `state` | `char(2)` | uma das 27 UFs (`CHECK`) |
+| `revenue_12m` | `decimal(15,2)` | receita bruta dos 12 meses anteriores ao período (RBT12), ≥ 0 (`CHECK`) |
+| `payroll_12m` | `decimal(15,2)` | folha dos mesmos 12 meses, ≥ 0 (`CHECK`) |
+| `reference_period` | `date` | mês de referência, sempre o 1.º dia (`CHECK`) |
+| `created_at`, `updated_at` | `timestamptz(3)` | preenchidos automaticamente |
+
 ### Restrições
 
 | Nome | Tipo | Motivo |
@@ -65,6 +84,10 @@ Tabelas e colunas em `snake_case` no PostgreSQL (`@@map`/`@map`); no código Typ
 | `companies_cnpj_format_check` | `CHECK` | Mesmo formato do CNPJ do escritório; os dígitos verificadores são validados na aplicação |
 | `companies_trade_name_not_blank_check` | `CHECK` | Sem nome fantasia, o valor é `NULL` |
 | `companies_accounting_firm_id_legal_name_idx` | índice | Listagem do escritório ordenada por razão social |
+| `tax_profiles_company_id_accounting_firm_id_fkey` | FK composta, `ON DELETE RESTRICT` | O perfil e a empresa são sempre do mesmo escritório (decisão D15) |
+| `tax_profiles_company_id_accounting_firm_id_key` | único | Um perfil por empresa. A ordem das colunas é a da FK, uma exigência do Prisma para relações 1:1 |
+| `tax_profiles_accounting_firm_id_idx` | índice | Índice que começa pelo tenant (regra S7) |
+| `tax_profiles_*_check` | `CHECK` | CNAE, UF, valores não negativos e mês de referência |
 
 ## Decisões de modelagem
 
@@ -72,7 +95,7 @@ Tabelas e colunas em `snake_case` no PostgreSQL (`@@map`/`@map`); no código Typ
 - **Email único global** e não por escritório: o login recebe apenas email e password, por isso o email tem de identificar um único utilizador.
 - **`ON DELETE RESTRICT`** entre utilizador e escritório: apagar um tenant exige remover primeiro os seus dados, de forma explícita.
 - **Sem campo de estado (`status`) no utilizador:** não está definido nos documentos aprovados.
-- **Isolamento entre tenants.** Toda tabela do tenant tem `accounting_firm_id`, e as consultas devem filtrar sempre por `{ id, accountingFirmId }`. Ainda não existe relação entre tabelas do tenant. A tabela `companies` já tem `UNIQUE (id, accounting_firm_id)`, e as **FKs compostas** `(company_id, accounting_firm_id)` → `companies(id, accounting_firm_id)` do relatório §3.3 entram com a primeira tabela filha (`tax_profiles`, semana 3). A tabela `users` recebe `UNIQUE (id, accounting_firm_id)` na migration da primeira tabela que a referencie (`analyses`, semana 4), para servir de alvo às FKs compostas ([modelo de dados](modelo-dados.md#restrições-e-índices)). Toda tabela nova segue as regras de schema do tenant (decisão D15, [seguranca.md](seguranca.md#schema-d15)), verificadas por um teste de catálogo do schema.
+- **Isolamento entre tenants.** Toda tabela do tenant tem `accounting_firm_id`, e as consultas devem filtrar sempre por `{ id, accountingFirmId }`. A primeira **FK composta** é `tax_profiles (company_id, accounting_firm_id)` → `companies(id, accounting_firm_id)` (relatório §3.3): o banco recusa um perfil ligado a uma empresa de outro escritório. A tabela `users` recebe `UNIQUE (id, accounting_firm_id)` na migration da primeira tabela que a referencie (`analyses`, semana 4), para servir de alvo às FKs compostas ([modelo de dados](modelo-dados.md#restrições-e-índices)). Toda tabela nova segue as regras de schema do tenant (decisão D15, [seguranca.md](seguranca.md#schema-d15)), verificadas por um teste de catálogo do schema.
 - **Ordenação em português:** a collation do banco ordena pelo valor binário (maiúsculas antes de minúsculas, acentos no fim). A razão social usa a collation ICU `pt-BR-x-icu`, aplicada por SQL na migration porque o Prisma não a expressa.
 - **`CHECK` em SQL manual:** o Prisma não expressa `CHECK`, por isso essas restrições estão escritas no fim do `migration.sql`, numa secção identificada.
 
@@ -120,7 +143,7 @@ Todas usam a password definida em `SEED_PASSWORD` no `.env`. Os emails usam o do
 | Beta Contabilidade | `analista@beta.tribu.example` | `ANALYST` |
 | Beta Contabilidade | `consulta@beta.tribu.example` | `VIEWER` |
 
-Cada escritório tem também seis empresas fictícias. Os CNPJs têm raiz alfanumérica começada por `TRIBU` (ex.: `TRIBUA000001` + dígitos verificadores), para não coincidirem com empresas reais.
+Cada escritório tem também seis empresas fictícias. Os CNPJs têm raiz alfanumérica começada por `TRIBU` (ex.: `TRIBUA000001` + dígitos verificadores), para não coincidirem com empresas reais. Cinco delas têm perfil tributário: alguns completos e outros com dados ausentes (sem folha, sem faturamento, sem período), e uma empresa por escritório fica sem perfil.
 
 A password só é aplicada quando a conta é **criada**. Mudar `SEED_PASSWORD` depois não altera contas existentes; para isso, recrie o banco.
 

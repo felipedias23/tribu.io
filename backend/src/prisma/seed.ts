@@ -13,7 +13,7 @@ import * as argon2 from 'argon2';
 import { z } from 'zod';
 import { cnpjCheckDigits } from '../companies/cnpj';
 import { databaseUrlSchema, parseOrThrow } from '../config/env.validation';
-import { PrismaClient, Role } from '../generated/prisma/client';
+import { PrismaClient, Role, TaxRegime } from '../generated/prisma/client';
 
 /** Escritórios fictícios. Sem CNPJ, para não coincidir com empresas reais. */
 export const SEED_FIRMS = [
@@ -113,6 +113,61 @@ export const SEED_COMPANIES = (
   }),
 );
 
+type SeedTaxProfile = {
+  taxRegime: TaxRegime | null;
+  cnae: string | null;
+  city: string | null;
+  state: string | null;
+  revenue12m: string | null;
+  payroll12m: string | null;
+  referencePeriod: string | null;
+};
+
+const { SIMPLES_NACIONAL, LUCRO_PRESUMIDO, LUCRO_REAL } = TaxRegime;
+
+/**
+ * Perfis tributários fictícios (US08), pela posição da empresa em
+ * COMPANY_NAMES. Há perfis completos, perfis com dados ausentes (null) e
+ * empresas sem perfil, para a demonstração e o Tax Radar.
+ */
+// prettier-ignore
+const TAX_PROFILES: Record<'A' | 'B', (SeedTaxProfile | null)[]> = {
+  A: [
+    { taxRegime: SIMPLES_NACIONAL, cnae: '4520001', city: 'São Paulo', state: 'SP', revenue12m: '1200000.00', payroll12m: '300000.00', referencePeriod: '2026-09' },
+    { taxRegime: SIMPLES_NACIONAL, cnae: '8630503', city: 'Campinas', state: 'SP', revenue12m: '2400000.00', payroll12m: '720000.00', referencePeriod: '2026-09' },
+    { taxRegime: SIMPLES_NACIONAL, cnae: '7410202', city: 'Santos', state: 'SP', revenue12m: '480000.00', payroll12m: null, referencePeriod: '2026-09' },
+    { taxRegime: LUCRO_PRESUMIDO, cnae: '1091102', city: 'Belo Horizonte', state: 'MG', revenue12m: '5200000.00', payroll12m: '900000.00', referencePeriod: '2026-09' },
+    null,
+    { taxRegime: LUCRO_REAL, cnae: '4930202', city: 'Curitiba', state: 'PR', revenue12m: '48000000.00', payroll12m: '7500000.00', referencePeriod: '2026-09' },
+  ],
+  B: [
+    { taxRegime: SIMPLES_NACIONAL, cnae: '7120100', city: 'Porto Alegre', state: 'RS', revenue12m: '1800000.00', payroll12m: '540000.00', referencePeriod: '2026-09' },
+    { taxRegime: SIMPLES_NACIONAL, cnae: '8513900', city: 'Florianópolis', state: 'SC', revenue12m: null, payroll12m: '210000.00', referencePeriod: '2026-09' },
+    null,
+    { taxRegime: SIMPLES_NACIONAL, cnae: '7111100', city: 'Recife', state: 'PE', revenue12m: '960000.00', payroll12m: '250000.00', referencePeriod: '2026-09' },
+    { taxRegime: SIMPLES_NACIONAL, cnae: '6201501', city: 'Recife', state: 'PE', revenue12m: '3100000.00', payroll12m: '1085000.00', referencePeriod: '2026-09' },
+    { taxRegime: LUCRO_PRESUMIDO, cnae: '5611201', city: 'Salvador', state: 'BA', revenue12m: '2700000.00', payroll12m: '650000.00', referencePeriod: null },
+  ],
+};
+
+export const SEED_TAX_PROFILES = SEED_COMPANIES.flatMap((company) => {
+  const letter = company.cnpj[5] as 'A' | 'B';
+  const index = Number(company.cnpj.slice(6, 12)) - 1;
+  const profile = TAX_PROFILES[letter][index];
+  if (!profile) return [];
+  const { referencePeriod, ...data } = profile;
+  return [
+    {
+      accountingFirmId: company.accountingFirmId,
+      companyId: company.id,
+      ...data,
+      referencePeriod: referencePeriod
+        ? new Date(`${referencePeriod}-01T00:00:00.000Z`)
+        : null,
+    },
+  ];
+});
+
 const seedEnvSchema = z.object({
   DATABASE_URL: databaseUrlSchema,
   SEED_PASSWORD: z
@@ -154,12 +209,25 @@ export async function seed(prisma: PrismaClient, password: string) {
         update: company,
       });
     }
+
+    for (const {
+      companyId,
+      accountingFirmId,
+      ...profile
+    } of SEED_TAX_PROFILES) {
+      await tx.taxProfile.upsert({
+        where: { companyId_accountingFirmId: { companyId, accountingFirmId } },
+        create: { companyId, accountingFirmId, ...profile },
+        update: profile,
+      });
+    }
   });
 
   return {
     firms: SEED_FIRMS.length,
     users: SEED_USERS.length,
     companies: SEED_COMPANIES.length,
+    taxProfiles: SEED_TAX_PROFILES.length,
   };
 }
 
@@ -171,7 +239,7 @@ async function main(): Promise<void> {
   try {
     const result = await seed(prisma, env.SEED_PASSWORD);
     console.log(
-      `[seed] OK: ${result.firms} escritórios, ${result.users} utilizadores e ${result.companies} empresas.`,
+      `[seed] OK: ${result.firms} escritórios, ${result.users} utilizadores, ${result.companies} empresas e ${result.taxProfiles} perfis tributários.`,
     );
   } finally {
     await prisma.$disconnect();

@@ -6,6 +6,7 @@ import { isValidCnpj } from '../src/companies/cnpj';
 import {
   SEED_COMPANIES,
   SEED_FIRMS,
+  SEED_TAX_PROFILES,
   SEED_USERS,
   seed,
 } from '../src/prisma/seed';
@@ -250,6 +251,21 @@ describe('Banco de dados (e2e)', () => {
         expect(isValidCnpj(company.cnpj)).toBe(true);
         expect(company.cnpj).toMatch(/^TRIBU/);
       }
+    });
+
+    it('cria perfis tributários completos, com dados ausentes e empresas sem perfil', async () => {
+      await seed(prisma, password);
+      const profiles = await prisma.taxProfile.findMany({
+        where: {
+          companyId: { in: SEED_COMPANIES.map((company) => company.id) },
+        },
+      });
+
+      expect(profiles).toHaveLength(SEED_TAX_PROFILES.length);
+      expect(profiles.length).toBeLessThan(SEED_COMPANIES.length);
+      expect(profiles.some((profile) => profile.payroll12m === null)).toBe(
+        true,
+      );
     });
   });
 });
