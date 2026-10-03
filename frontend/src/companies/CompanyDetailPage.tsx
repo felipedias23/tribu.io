@@ -9,10 +9,11 @@ import { formatCnpj } from './cnpj';
 import styles from './Companies.module.css';
 import { CompanyForm } from './CompanyForm';
 import { canEditCompanies } from './permissions';
+import { TaxProfileSection } from './TaxProfileSection';
 
 const dateFormat = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' });
 
-/** Dados de uma empresa e edição (US06). O perfil tributário entra com a US08. */
+/** Dados de uma empresa e edição (US06), com o perfil tributário (US08). */
 export function CompanyDetailPage() {
   const { id = '' } = useParams();
   const { user } = useAuth();
@@ -84,7 +85,7 @@ export function CompanyDetailPage() {
               </div>
               <div>
                 <dt>Nome fantasia</dt>
-                <dd>{company.tradeName ?? 'Não informado'}</dd>
+                <dd>{company.tradeName ?? <span className={styles.missing}>Não informado</span>}</dd>
               </div>
               <div>
                 <dt>Cadastrada em</dt>
@@ -92,6 +93,8 @@ export function CompanyDetailPage() {
               </div>
             </dl>
           )}
+
+          <TaxProfileSection companyId={company.id} canEdit={!!user && canEditCompanies(user.role)} />
         </>
       )}
     </section>

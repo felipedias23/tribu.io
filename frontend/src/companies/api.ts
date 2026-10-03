@@ -35,6 +35,7 @@ export const companyKeys = {
   all: ['companies'] as const,
   list: (params: CompanyListParams) => [...companyKeys.all, 'list', params] as const,
   detail: (id: string) => [...companyKeys.all, 'detail', id] as const,
+  taxProfile: (id: string) => [...companyKeys.all, 'tax-profile', id] as const,
 };
 
 export function listCompanies({ search, page }: CompanyListParams): Promise<CompanyPage> {
@@ -53,4 +54,35 @@ export function createCompany(input: CompanyInput): Promise<Company> {
 
 export function updateCompany(id: string, input: CompanyInput): Promise<Company> {
   return apiRequest(`/companies/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(input) });
+}
+
+export type TaxRegime = 'SIMPLES_NACIONAL' | 'LUCRO_PRESUMIDO' | 'LUCRO_REAL';
+
+/**
+ * Espelha TaxProfileResponse do backend. null é dado ausente (D20); valores
+ * em reais vêm como texto ("1200000.00") e o período como "AAAA-MM".
+ * `updatedAt` null: o perfil ainda não foi preenchido.
+ */
+export interface TaxProfile {
+  taxRegime: TaxRegime | null;
+  cnae: string | null;
+  city: string | null;
+  state: string | null;
+  revenue12m: string | null;
+  payroll12m: string | null;
+  referencePeriod: string | null;
+  updatedAt: string | null;
+}
+
+export type TaxProfileInput = Omit<TaxProfile, 'updatedAt'>;
+
+export function getTaxProfile(companyId: string): Promise<TaxProfile> {
+  return apiRequest(`/companies/${encodeURIComponent(companyId)}/tax-profile`);
+}
+
+export function putTaxProfile(companyId: string, input: TaxProfileInput): Promise<TaxProfile> {
+  return apiRequest(`/companies/${encodeURIComponent(companyId)}/tax-profile`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
 }
