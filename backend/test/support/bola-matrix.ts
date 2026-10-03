@@ -41,6 +41,32 @@ export const BOLA_CASES: BolaCase[] = [
     snapshot: (prisma, id) =>
       prisma.company.findUniqueOrThrow({ where: { id } }),
   },
+  {
+    method: 'GET',
+    path: '/companies/:id/tax-profile',
+    targetId: async (b, prisma) => {
+      const company = await createCompany(prisma, b.firmId);
+      await prisma.taxProfile.create({
+        data: {
+          accountingFirmId: b.firmId,
+          companyId: company.id,
+          revenue12m: '1000.00',
+        },
+      });
+      return company.id;
+    },
+    snapshot: (prisma, companyId) =>
+      prisma.taxProfile.findFirst({ where: { companyId } }),
+  },
+  {
+    method: 'PUT',
+    path: '/companies/:id/tax-profile',
+    targetId: async (b, prisma) => (await createCompany(prisma, b.firmId)).id,
+    body: { revenue12m: '999.00', taxRegime: 'LUCRO_REAL' },
+    // Sem perfil antes; o pedido de A não pode criá-lo.
+    snapshot: (prisma, companyId) =>
+      prisma.taxProfile.findFirst({ where: { companyId } }),
+  },
 ];
 
 export function routeKey(route: { method: string; path: string }): string {

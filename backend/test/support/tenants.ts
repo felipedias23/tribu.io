@@ -65,12 +65,15 @@ export async function createTenant(
   return { firmId: firm.id, ...accounts };
 }
 
-/** Remove os escritórios criados pelo teste, com os seus utilizadores e empresas. */
+/** Remove os escritórios criados pelo teste e todos os seus dados. */
 export async function deleteTenants(
   prisma: PrismaClient,
   tenants: (Tenant | undefined)[],
 ): Promise<void> {
   const firmIds = tenants.flatMap((tenant) => (tenant ? [tenant.firmId] : []));
+  await prisma.taxProfile.deleteMany({
+    where: { accountingFirmId: { in: firmIds } },
+  });
   await prisma.company.deleteMany({
     where: { accountingFirmId: { in: firmIds } },
   });
