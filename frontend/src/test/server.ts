@@ -10,6 +10,18 @@ export const demoUser: AuthUser = {
   accountingFirm: { id: '11111111-1111-4111-8111-111111111111', name: 'Alfa Contabilidade' },
 };
 
+/** Perfil ainda não preenchido: todos os campos ausentes. */
+export const emptyTaxProfile = {
+  taxRegime: null,
+  cnae: null,
+  city: null,
+  state: null,
+  revenue12m: null,
+  payroll12m: null,
+  referencePeriod: null,
+  updatedAt: null,
+};
+
 export function errorResponse(status: number, message: string, details?: { field: string; messages: string[] }[]) {
   return HttpResponse.json({ statusCode: status, error: 'Error', message, details }, { status });
 }
@@ -19,4 +31,5 @@ export const server = setupServer(
   http.get('/api/v1/health', () => HttpResponse.json({ status: 'ok' })),
   http.get('/api/v1/auth/me', () => errorResponse(401, 'Sessão inválida ou expirada.')),
   http.get('/api/v1/companies', () => HttpResponse.json({ items: [], total: 0, page: 1, pageSize: 20 })),
+  http.get('/api/v1/companies/:id/tax-profile', () => HttpResponse.json(emptyTaxProfile)),
 );

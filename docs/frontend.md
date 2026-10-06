@@ -15,12 +15,12 @@ frontend/src/
 │   ├── NotFoundPage.tsx     # 404 dentro do layout
 │   └── ErrorPage.tsx        # erro inesperado (errorElement do router)
 ├── auth/                    # sessão, login, registo, RequireAuth, AuthLayout
-├── companies/               # lista, cadastro e detalhe de empresas (US06, US07)
+├── companies/               # lista, cadastro e detalhe de empresas (US06, US07) e perfil tributário (US08)
 ├── components/ApiStatus.tsx # estado da API (GET /health) nas páginas de login e registo
 ├── shared/
 │   ├── api/http.ts          # cliente HTTP, ApiError, aviso de sessão expirada
 │   ├── api/queryClient.ts   # configuração do TanStack Query
-│   ├── components/          # TextField, PlaceholderPage
+│   ├── components/          # TextField, SelectField, PlaceholderPage
 │   └── hooks/               # useDocumentTitle, useFormSubmit
 ├── styles/global.css        # tokens de design
 └── test/                    # MSW (server.ts) e renderRoute
@@ -37,7 +37,7 @@ As pastas dos outros módulos de negócio (`radar/`, `imports/`, …) são criad
 | `/radar` | sessão | **página inicial**, "Em construção" |
 | `/companies` | sessão | lista de empresas com pesquisa e paginação (pesquisa e página no URL) |
 | `/companies/new` | sessão; formulário só para `ADMIN` e `ANALYST` | cadastro de empresa |
-| `/companies/:id` | sessão; editar só para `ADMIN` e `ANALYST` | dados da empresa e edição |
+| `/companies/:id` | sessão; editar só para `ADMIN` e `ANALYST` | dados da empresa e edição, perfil tributário |
 | `/imports`, `/audit`, `/settings/*` | sessão | "Em construção" |
 | qualquer outra | sessão | 404 dentro do layout |
 
@@ -51,6 +51,10 @@ Todas as secções aparecem para todos os papéis (decisão D21). Para restringi
 - Erros 4xx não são repetidos; falhas de rede e 5xx tentam mais uma vez.
 - O cache é limpo quando deixa de haver sessão, no logout ou quando a sessão expira (regra S24).
 - Ações que o papel não permite ficam escondidas (ex.: `canEditCompanies`), mas quem autoriza é a API.
+
+## Dados ausentes (D20)
+
+No perfil tributário, `null` é dado ausente e nunca é mostrado nem enviado como zero. Cada campo ausente aparece como *Não informado*, e a seção lista o que falta. No formulário, um campo vazio é enviado como `null`. Os valores em reais são escritos no formato brasileiro (`1.200.000,00`) e convertidos para o formato da API (`"1200000.00"`) antes do envio.
 
 ## Layout (mobile-first)
 
@@ -92,6 +96,8 @@ Os estilos base são os do telemóvel; o desktop aplica-se com `@media (min-widt
 | `app/navigation.test.ts` | secções por papel |
 | `companies/companies.test.tsx` | lista, pesquisa, paginação, cadastro com erro por campo, edição, VIEWER sem ações, 404, cache limpo ao sair |
 | `companies/cnpj.test.ts` | máscara do CNPJ numérico e alfanumérico |
+| `companies/taxProfile.test.tsx` | perfil com dados ausentes, perfil vazio, VIEWER sem ações, preenchimento e erro por campo |
+| `companies/taxProfileFormat.test.ts` | máscara do CNAE, valores em reais e mês de referência |
 | `app/ErrorPage.test.tsx` | página de erro sem detalhes técnicos |
 | `shared/api/http.test.ts` | erros padronizados, 204, aviso de 401 fora de `/auth/*` |
 | `components/ApiStatus.test.tsx` | estado da API: online, erro do health check e sem resposta |

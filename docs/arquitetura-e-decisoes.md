@@ -115,7 +115,7 @@ Cada sinal traz `reasons[]` (`code`, `message`, regra, versão, dados usados, au
 | AccountingFirm | `cnpj` único (opcional) |
 | User | `email` único (minúsculas); único `(id, accountingFirmId)`; índice `accountingFirmId`; `role`, `tokenVersion` |
 | Company | únicos `(accountingFirmId, cnpj)` e `(id, accountingFirmId)`; índice `(accountingFirmId, legalName)` |
-| TaxProfile | 1:1 com Company (`companyId` único); FK composta; CHECK valores ≥ 0; campos anuláveis (D20) |
+| TaxProfile | 1:1 com Company (único `(companyId, accountingFirmId)`); FK composta; CHECK valores ≥ 0; campos anuláveis (D20) |
 | TaxRule | `code` único |
 | TaxRuleVersion | único `(taxRuleId, version)`; CHECK `validUntil > validFrom`; EXCLUDE sobreposição |
 | Analysis | FKs compostas → Company e User; índices `(accountingFirmId, companyId, executedAt DESC)`, `(accountingFirmId, radarStatus)` |

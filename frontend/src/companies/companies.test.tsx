@@ -142,7 +142,7 @@ describe('empresas', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Guardar alterações' }));
 
     expect(await screen.findByRole('heading', { name: 'Oficina Renovada Ltda' })).toBeInTheDocument();
-    expect(screen.getByText('Não informado')).toBeInTheDocument();
+    expect(screen.getByText('Nome fantasia').nextElementSibling).toHaveTextContent('Não informado');
     expect(patchBody).toEqual({ cnpj: '12.ABC.345/01DE-35', legalName: 'Oficina Renovada Ltda', tradeName: null });
   });
 

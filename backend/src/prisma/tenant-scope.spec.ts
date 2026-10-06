@@ -15,7 +15,11 @@ function check(operation: string, args?: Record<string, unknown>) {
 
 describe('Verificação de tenant no Prisma (D16)', () => {
   it('identifica os models do tenant pela coluna accountingFirmId', () => {
-    expect([...TENANT_MODELS].sort()).toEqual(['Company', 'User']);
+    expect([...TENANT_MODELS].sort()).toEqual([
+      'Company',
+      'TaxProfile',
+      'User',
+    ]);
   });
 
   it('ignora models que não são do tenant', () => {
