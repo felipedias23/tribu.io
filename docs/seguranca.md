@@ -33,9 +33,9 @@ As regras valem para todo código novo. Os mecanismos que as verificam automatic
 | Verificação de tenant no Prisma (D16) | Implementado (semana 3): [`tenant-scope.ts`](../backend/src/prisma/tenant-scope.ts); import do cliente `unscoped` fora de `auth` bloqueado pelo ESLint (S5) |
 | Matriz BOLA, inventário de rotas e catálogo do schema (D17) | Implementado (semana 3): [`bola-matrix.ts`](../backend/test/support/bola-matrix.ts), [`route-inventory.e2e-spec.ts`](../backend/test/route-inventory.e2e-spec.ts), [`schema-catalog.e2e-spec.ts`](../backend/test/schema-catalog.e2e-spec.ts) |
 | FKs compostas (D15) | Implementado (semana 3): `tax_profiles` → `companies`; cada tabela nova é verificada pelo catálogo do schema |
-| Arranque recusado em produção com valores de exemplo (D19, S25) | Pendente: antes do primeiro deploy público (semana 3) |
-| Papel do banco sem superuser nem DDL (D18, S26) | Pendente: antes do primeiro deploy público (semana 3) |
-| `helmet` | Pendente: antes do primeiro deploy público ([autenticacao.md](autenticacao.md#deploy)) |
+| Arranque recusado em produção com valores de exemplo (D19, S25) | Pendente: semana 3 (D23) |
+| Papel do banco sem superuser nem DDL (D18, S26) | Pendente: com o deploy público (semana 7, D23) |
+| `helmet` | Pendente: semana 3 (D23; [autenticacao.md](autenticacao.md#deploy)) |
 
 Enquanto um mecanismo está pendente, a regra correspondente é verificada na revisão do PR.
 
