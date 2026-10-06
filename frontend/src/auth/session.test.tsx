@@ -1,4 +1,4 @@
-import { act, screen } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -59,6 +59,44 @@ describe('sessão expirada durante o uso', () => {
 
     expect(await screen.findByRole('heading', { name: 'Tax Radar' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Entrar' })).not.toBeInTheDocument();
+  });
+
+  it('ao voltar ao separador sem rede, a sessão continua', async () => {
+    renderRoute('/radar');
+    await screen.findByRole('heading', { name: 'Tax Radar' });
+    let checked = false;
+    server.use(
+      http.get('/api/v1/auth/me', () => {
+        checked = true;
+        return HttpResponse.error();
+      }),
+    );
+
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    await waitFor(() => expect(checked).toBe(true));
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+    expect(screen.getByRole('heading', { name: 'Tax Radar' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Entrar' })).not.toBeInTheDocument();
+  });
+
+  it('um 401 numa página com pesquisa volta à mesma pesquisa depois do login', async () => {
+    server.use(
+      http.get('/api/v1/dados', () => errorResponse(401, 'Sessão inválida ou expirada.')),
+      http.post('/api/v1/auth/login', () => HttpResponse.json(demoUser)),
+    );
+    const { router } = renderRoute('/companies?search=oficina');
+    await screen.findByRole('heading', { name: 'Empresas' });
+
+    await act(() => apiRequest('/dados').catch(() => undefined));
+    await userEvent.type(await screen.findByLabelText('Email'), demoUser.email);
+    await userEvent.type(screen.getByLabelText('Password'), 'password-certa');
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
+
+    expect(await screen.findByRole('heading', { name: 'Empresas' })).toBeInTheDocument();
+    expect(router.state.location.search).toBe('?search=oficina');
   });
 
   it('um visitante sem sessão não vê o aviso de sessão expirada', async () => {
