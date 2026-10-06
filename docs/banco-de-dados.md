@@ -154,7 +154,7 @@ Modelo em [`.env.example`](../.env.example). O backend valida o ambiente no arra
 | Variável | Usada por | Obrigatória | Descrição |
 |---|---|---|---|
 | `DATABASE_URL` | API, migrations, seed, testes e2e | sim | URL `postgresql://`; no Docker Compose é montada a partir das variáveis `POSTGRES_*` |
-| `NODE_ENV` | API | não (`development`) | `development`, `test` ou `production` |
+| `NODE_ENV` | API | não (`development`) | `development`, `test` ou `production`. Com `production`, a API e o seed recusam valores de exemplo (D19). O `docker compose` local usa `development` |
 | `PORT` | API | não (`3000`) | Porta HTTP |
 | `SEED_PASSWORD` | seed, testes e2e | para o seed | Password das contas fictícias, mínimo 8 caracteres |
 | `SEED_ON_START` | container do backend | não (`false`) | `true` executa o seed a cada arranque |
