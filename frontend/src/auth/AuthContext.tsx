@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { onUnauthorized } from '../shared/api/http';
 import * as authApi from './api';
@@ -26,9 +27,16 @@ const EXPIRED: AuthState = { status: 'anonymous', user: null, sessionExpired: tr
  *
  * Sessão expirada durante o uso (8h, logout noutro dispositivo): detetada por
  * qualquer 401 da API e ao voltar ao separador; o RequireAuth leva ao login.
+ * Deve ficar dentro de um QueryClientProvider: o cache é limpo sem sessão.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: 'loading', user: null });
+  const queryClient = useQueryClient();
+
+  // Sem sessão, nenhum dado do escritório fica em cache (regra S24).
+  useEffect(() => {
+    if (state.status === 'anonymous') queryClient.clear();
+  }, [state.status, queryClient]);
 
   useEffect(() => {
     const controller = new AbortController();
