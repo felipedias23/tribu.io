@@ -49,14 +49,74 @@ describe('validateEnv', () => {
       validateEnv({ ...required, NODE_ENV: 'production' }).COOKIE_SECURE,
     ).toBe(true);
     expect(
-      validateEnv({
-        ...required,
-        NODE_ENV: 'production',
-        COOKIE_SECURE: 'false',
-      }).COOKIE_SECURE,
+      validateEnv({ ...required, COOKIE_SECURE: 'false' }).COOKIE_SECURE,
     ).toBe(false);
     expect(() => validateEnv({ ...required, COOKIE_SECURE: 'sim' })).toThrow(
       /COOKIE_SECURE/,
     );
+  });
+
+  it('não expõe SEED_PASSWORD na configuração da API', () => {
+    expect(
+      validateEnv({ ...required, SEED_PASSWORD: 'password-local' }),
+    ).not.toHaveProperty('SEED_PASSWORD');
+  });
+
+  describe('produção (D19, S25)', () => {
+    const production = { ...required, NODE_ENV: 'production' };
+    const example = {
+      JWT_SECRET: 'change-me-local-only-with-at-least-32-characters',
+      DATABASE_URL:
+        'postgresql://tribu:change-me-local-only@db:5432/tribu?schema=public',
+      SEED_PASSWORD: 'change-me-demo-only',
+    };
+
+    it.each(Object.entries(example))(
+      'recusa o valor de exemplo em %s',
+      (key, value) => {
+        expect(() => validateEnv({ ...production, [key]: value })).toThrow(
+          new RegExp(`${key}: valor de exemplo`),
+        );
+      },
+    );
+
+    it('recusa o valor de exemplo em qualquer caixa', () => {
+      expect(() =>
+        validateEnv({ ...production, SEED_PASSWORD: 'CHANGE-ME-demo' }),
+      ).toThrow(/SEED_PASSWORD/);
+    });
+
+    it('recusa COOKIE_SECURE=false', () => {
+      expect(() =>
+        validateEnv({ ...production, COOKIE_SECURE: 'false' }),
+      ).toThrow(/COOKIE_SECURE: não pode ser false em produção/);
+    });
+
+    it('lista todos os problemas de uma vez', () => {
+      expect(() =>
+        validateEnv({ ...production, ...example, COOKIE_SECURE: 'false' }),
+      ).toThrow(
+        /JWT_SECRET[\s\S]*DATABASE_URL[\s\S]*SEED_PASSWORD[\s\S]*COOKIE_SECURE/,
+      );
+    });
+
+    it('arranca com valores próprios', () => {
+      expect(
+        validateEnv({ ...production, SEED_PASSWORD: 'outra-password-forte' }),
+      ).toMatchObject({ NODE_ENV: 'production', COOKIE_SECURE: true });
+    });
+
+    it('em desenvolvimento e testes, os valores de exemplo continuam válidos', () => {
+      for (const NODE_ENV of ['development', 'test']) {
+        expect(() =>
+          validateEnv({
+            ...required,
+            ...example,
+            NODE_ENV,
+            COOKIE_SECURE: 'false',
+          }),
+        ).not.toThrow();
+      }
+    });
   });
 });
