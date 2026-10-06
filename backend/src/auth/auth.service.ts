@@ -4,7 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Prisma, Role } from '../generated/prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
+import { UnscopedPrismaService } from '../prisma/unscoped-prisma.service';
 import type { AuthUserResponse } from './dto/auth-user.response';
 import type { LoginDto } from './dto/login.dto';
 import type { RegisterDto } from './dto/register.dto';
@@ -28,7 +28,7 @@ export interface AuthResult {
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: UnscopedPrismaService,
     private readonly sessions: SessionService,
   ) {}
 
@@ -42,6 +42,7 @@ export class AuthService {
 
     let user: AuthUserResponse & { tokenVersion: number };
     try {
+      // Unscoped (S5): o escritório ainda não existe.
       const firm = await this.prisma.accountingFirm.create({
         data: {
           name: dto.firmName,
@@ -74,6 +75,7 @@ export class AuthService {
 
   /** Mesmo erro e mesmo tempo de resposta para email inexistente ou password errada. */
   async login(dto: LoginDto): Promise<AuthResult> {
+    // Unscoped (S5): o login recebe só email e password; o tenant ainda não é conhecido.
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
       select: { ...AUTH_USER_SELECT, passwordHash: true, tokenVersion: true },
@@ -93,6 +95,7 @@ export class AuthService {
 
   /** Dados do utilizador autenticado, incluindo o nome do escritório. */
   async profile(userId: string): Promise<AuthUserResponse> {
+    // Unscoped (S5): o id é o do utilizador da própria sessão.
     return this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
       select: AUTH_USER_SELECT,
@@ -107,6 +110,7 @@ export class AuthService {
     const user = await this.sessions.resolve(token);
     if (!user) return;
 
+    // Unscoped (S5): o id é o do utilizador da própria sessão.
     await this.prisma.user.update({
       where: { id: user.id },
       data: { tokenVersion: { increment: 1 } },
