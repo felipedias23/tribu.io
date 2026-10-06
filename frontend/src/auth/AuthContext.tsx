@@ -81,11 +81,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    try {
-      await authApi.logout();
-    } finally {
-      setState(ANONYMOUS);
-    }
+    // Sem rede, a sessão termina na mesma no browser.
+    await authApi.logout().catch(() => undefined);
+    setState(ANONYMOUS);
   }, []);
 
   const value = useMemo<AuthContextValue>(
