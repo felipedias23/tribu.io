@@ -12,6 +12,8 @@ O Tribu.io funciona como uma camada de inteligência sobre a carteira de empresa
 
 **Semana 2 — persistência, autenticação e layout base (Checkpoint 1).** O banco tem as tabelas do tenant (`accounting_firms`) e dos utilizadores (`users`), com migrations versionadas e seed fictício. A API tem registo, login, logout e sessão (JWT em cookie httpOnly), autorização por papel e isolamento entre escritórios. O frontend tem login, registo e o layout autenticado responsivo, com as secções do produto ainda como páginas "Em construção". As funcionalidades de negócio começam na Semana 3, conforme o [cronograma](docs/arquitetura-e-decisoes.md#8-cronograma-8-semanas-semana-0--2026-09-26).
 
+**Semana 3 — isolamento entre escritórios, empresas e perfil tributário.** Antes da primeira tabela de negócio, o isolamento entre escritórios passou a ter quatro camadas: o escritório vem sempre da sessão; o banco usa FKs compostas com o tenant; o Prisma recusa qualquer query sem o escritório no `where`; e um recurso de outro escritório responde 404, igual a um inexistente. A matriz BOLA, o inventário de rotas e o catálogo do schema verificam estas regras em cada PR ([segurança](docs/seguranca.md)). Com isso vieram as empresas (cadastro, edição, lista paginada e pesquisa por nome ou CNPJ, incluindo o CNPJ alfanumérico) e o perfil tributário de cada empresa, em que um dado em falta fica como "Não informado" e nunca vira zero. O seed passou a ter 12 empresas e 10 perfis tributários. A API recusa arrancar em produção com valores de exemplo e envia cabeçalhos de segurança (`helmet`). Um teste de mutação (43 bugs inseridos de propósito, todos detetados) confirmou que os testes apanham regressões. O Tax Radar, as importações e a auditoria continuam como páginas "Em construção".
+
 ## Arquitetura
 
 Monólito modular com três serviços em containers separados:
@@ -44,13 +46,15 @@ Decisões e modelo de dados planejado: [arquitetura e decisões](docs/arquitetur
 │   ├── src/
 │   │   ├── auth/         registo, login, sessão, guards e decorators
 │   │   ├── common/       formato de erros e validação
+│   │   ├── companies/    empresas do escritório e validação do CNPJ
 │   │   ├── config/       validação das variáveis de ambiente
 │   │   ├── health/       GET /api/v1/health
-│   │   ├── prisma/       ligação ao PostgreSQL e seed
+│   │   ├── prisma/       ligação ao PostgreSQL, verificação de tenant e seed
+│   │   ├── tax-profiles/ perfil tributário de cada empresa
 │   │   └── users/        utilizadores do escritório
-│   └── test/             testes e2e (API, banco, isolamento entre tenants)
+│   └── test/             testes e2e (API, banco, isolamento entre tenants, matriz BOLA, cabeçalhos)
 ├── frontend/             aplicação React
-│   └── src/              app/ (rotas e layout), auth/ (sessão e páginas), shared/
+│   └── src/              app/ (rotas e layout), auth/ (sessão e páginas), companies/ (empresas e perfil tributário), shared/
 ├── infra/docker/         Dockerfiles e nginx.conf
 ├── infra/scripts/        entrypoint do backend (migrations + seed)
 ├── docs/                 especificações do projeto
