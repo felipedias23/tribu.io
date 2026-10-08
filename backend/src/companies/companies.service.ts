@@ -25,6 +25,15 @@ const COMPANY_SELECT = {
   updatedAt: true,
 } satisfies Prisma.CompanySelect;
 
+/**
+ * O `contains` do Prisma vira um LIKE sem escape: `%` e `_` seriam curingas e
+ * a pesquisa por "%" devolveria todas as empresas. A barra invertida é o
+ * caractere de escape padrão do LIKE no PostgreSQL.
+ */
+export function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&');
+}
+
 const NOT_FOUND = 'Empresa não encontrada.';
 const DUPLICATE_CNPJ = 'Já existe uma empresa com este CNPJ no escritório.';
 
@@ -114,11 +123,12 @@ export class CompaniesService {
 
   /** Pesquisa por nome (sem distinguir maiúsculas) ou por parte do CNPJ. */
   private searchFilters(search: string): Prisma.CompanyWhereInput[] {
+    const text = escapeLike(search);
     const filters: Prisma.CompanyWhereInput[] = [
-      { legalName: { contains: search, mode: 'insensitive' } },
-      { tradeName: { contains: search, mode: 'insensitive' } },
+      { legalName: { contains: text, mode: 'insensitive' } },
+      { tradeName: { contains: text, mode: 'insensitive' } },
     ];
-    const cnpj = normalizeCnpj(search);
+    const cnpj = escapeLike(normalizeCnpj(search));
     if (cnpj) filters.push({ cnpj: { contains: cnpj } });
     return filters;
   }

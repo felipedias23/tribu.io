@@ -195,6 +195,37 @@ describe('Empresas (e2e)', () => {
       ).toEqual([company.id]);
     });
 
+    it('pesquisa %, _ e \\ como texto, não como curingas', async () => {
+      const symbols = await createTenant(app, prisma, 'Empresas Símbolos');
+      try {
+        for (const name of [
+          '50% Desconto Ltda',
+          'Loja_Um Ltda',
+          'Barra\\Dupla Ltda',
+          'Comum Ltda',
+        ]) {
+          await createCompany(prisma, symbols.firmId, name);
+        }
+        const names = async (search: string) => {
+          const response = await list(
+            symbols.viewer,
+            `?search=${encodeURIComponent(search)}`,
+          ).expect(200);
+          return (response.body.items as { legalName: string }[]).map(
+            (c) => c.legalName,
+          );
+        };
+
+        expect(await names('%')).toEqual(['50% Desconto Ltda']);
+        expect(await names('_')).toEqual(['Loja_Um Ltda']);
+        expect(await names('\\')).toEqual(['Barra\\Dupla Ltda']);
+        expect(await names('0%')).toEqual(['50% Desconto Ltda']);
+        expect(await names('ltda')).toHaveLength(4);
+      } finally {
+        await deleteTenants(prisma, [symbols]);
+      }
+    });
+
     it('limita o tamanho da página a 100', async () => {
       await list(tenant.viewer, '?pageSize=101').expect(400);
       await list(tenant.viewer, '?page=0').expect(400);
