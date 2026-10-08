@@ -199,6 +199,32 @@ describe('Empresas (e2e)', () => {
       await list(tenant.viewer, '?pageSize=101').expect(400);
       await list(tenant.viewer, '?page=0').expect(400);
     });
+
+    it('limita a pesquisa a 100 caracteres', async () => {
+      await list(tenant.viewer, `?search=${'a'.repeat(100)}`).expect(200);
+      await list(tenant.viewer, `?search=${'a'.repeat(101)}`).expect(400);
+    });
+
+    it('empresas com a mesma razão social têm ordem estável entre páginas', async () => {
+      const twins = await createTenant(app, prisma, 'Empresas Gémeas');
+      const ids: string[] = [];
+      for (let i = 0; i < 6; i += 1) {
+        ids.push((await createCompany(prisma, twins.firmId, 'Igual Ltda')).id);
+      }
+
+      const pages = await Promise.all(
+        [1, 2, 3].map((page) =>
+          list(twins.viewer, `?pageSize=2&page=${page}`).expect(200),
+        ),
+      );
+
+      expect(
+        pages.flatMap((r) =>
+          (r.body.items as { id: string }[]).map((c) => c.id),
+        ),
+      ).toEqual([...ids].sort());
+      await deleteTenants(prisma, [twins]);
+    });
   });
 
   describe('GET e PATCH /companies/:id', () => {

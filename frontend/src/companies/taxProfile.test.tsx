@@ -93,6 +93,65 @@ describe('perfil tributário', () => {
     });
   });
 
+  it('zero é um valor conhecido: aparece em reais, não como "Não informado"', async () => {
+    openCompany(demoUser, { ...partialProfile, revenue12m: '0.00', payroll12m: '0.00' });
+
+    expect(await screen.findByText('Simples Nacional')).toBeInTheDocument();
+    expect(within(section()).getAllByText(/^R\$\s0,00$/)).toHaveLength(2);
+    expect(within(section()).queryByText('Não informado')).not.toBeInTheDocument();
+    expect(within(section()).queryByText(/Dados em falta/)).not.toBeInTheDocument();
+  });
+
+  it('apagar os dados e escolher "Não informado" envia null, nunca texto vazio', async () => {
+    openCompany(demoUser, partialProfile);
+    let body: unknown;
+    server.use(
+      http.put(`/api/v1/companies/${company.id}/tax-profile`, async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ ...emptyTaxProfile, updatedAt: '2026-10-06T12:00:00.000Z' });
+      }),
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Editar perfil' }));
+    await userEvent.selectOptions(screen.getByLabelText('Regime tributário'), '');
+    await userEvent.clear(screen.getByLabelText('CNAE principal'));
+    await userEvent.clear(screen.getByLabelText('Município'));
+    await userEvent.selectOptions(screen.getByLabelText('UF'), '');
+    await userEvent.clear(screen.getByLabelText('Receita bruta dos últimos 12 meses (R$)'));
+    fireEvent.change(screen.getByLabelText('Mês de referência'), { target: { value: '' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar perfil' }));
+
+    expect(await screen.findByText(/Dados em falta/)).toBeInTheDocument();
+    expect(body).toEqual({
+      taxRegime: null,
+      cnae: null,
+      city: null,
+      state: null,
+      revenue12m: null,
+      payroll12m: null,
+      referencePeriod: null,
+    });
+  });
+
+  it('cancelar fecha o formulário sem gravar', async () => {
+    openCompany(demoUser, partialProfile);
+    let saved = false;
+    server.use(
+      http.put(`/api/v1/companies/${company.id}/tax-profile`, () => {
+        saved = true;
+        return HttpResponse.json(partialProfile);
+      }),
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Editar perfil' }));
+    await userEvent.clear(screen.getByLabelText('Município'));
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(screen.queryByRole('button', { name: 'Guardar perfil' })).not.toBeInTheDocument();
+    expect(within(section()).getByText('Santos')).toBeInTheDocument();
+    expect(saved).toBe(false);
+  });
+
   it('mostra o erro da API junto do campo', async () => {
     openCompany(demoUser, partialProfile);
     server.use(
