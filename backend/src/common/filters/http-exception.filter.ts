@@ -7,9 +7,42 @@ import {
   Logger,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { Prisma } from '../../generated/prisma/client';
 import { ErrorResponseDto, FieldErrorDto } from '../errors/error-response';
 
 const INTERNAL_ERROR_MESSAGE = 'Erro interno. Tente novamente mais tarde.';
+
+/** Erros do Prisma: a mensagem inclui os argumentos da query (valores do tenant). */
+const PRISMA_ERRORS = [
+  Prisma.PrismaClientKnownRequestError,
+  Prisma.PrismaClientUnknownRequestError,
+  Prisma.PrismaClientValidationError,
+  Prisma.PrismaClientInitializationError,
+  Prisma.PrismaClientRustPanicError,
+];
+
+/**
+ * Texto do log de um erro 5xx (regra S21). Nos erros do Prisma, regista o nome,
+ * o código e as linhas do stack, nunca a mensagem, que traz os valores da query.
+ */
+export function describeForLog(exception: unknown): string {
+  if (!(exception instanceof Error)) return String(exception);
+  if (!PRISMA_ERRORS.some((type) => exception instanceof type)) {
+    return exception.stack ?? exception.message;
+  }
+
+  const { code, errorCode } = exception as {
+    code?: string;
+    errorCode?: string;
+  };
+  const frames = (exception.stack ?? '')
+    .split('\n')
+    .filter((line) => line.trimStart().startsWith('at '));
+  return [
+    `${exception.name} (código: ${code ?? errorCode ?? 'n/d'})`,
+    ...frames,
+  ].join('\n');
+}
 
 /**
  * Converte qualquer exceção no formato ErrorResponseDto.
@@ -24,11 +57,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = http.getRequest<Request>();
     const response = http.getResponse<Response>();
 
-    const body = this.toErrorResponse(exception, request.url);
+    const body = this.toErrorResponse(exception, request.originalUrl);
     if (body.statusCode >= 500) {
-      this.logger.error(
-        exception instanceof Error ? exception.stack : String(exception),
-      );
+      this.logger.error(describeForLog(exception));
     }
 
     response.status(body.statusCode).json(body);

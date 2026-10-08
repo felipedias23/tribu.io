@@ -22,10 +22,60 @@ describe('Verificação de tenant no Prisma (D16)', () => {
     ]);
   });
 
-  it('ignora models que não são do tenant', () => {
-    expect(() =>
-      assertTenantScoped('AccountingFirm', 'findMany', {}),
-    ).not.toThrow();
+  it('ignora models globais, que não são do tenant', () => {
+    expect(() => assertTenantScoped('TaxRule', 'findMany', {})).not.toThrow();
+  });
+
+  describe('o próprio escritório (AccountingFirm)', () => {
+    function checkFirm(operation: string, args?: Record<string, unknown>) {
+      return () => assertTenantScoped('AccountingFirm', operation, args);
+    }
+
+    it.each(['findUnique', 'findFirst', 'findMany', 'update'])(
+      '%s aceita o id do escritório no nível superior do where',
+      (operation) => {
+        expect(
+          checkFirm(operation, { where: { id: TENANT }, data: { name: 'x' } }),
+        ).not.toThrow();
+      },
+    );
+
+    it.each([
+      ['sem where', {}],
+      ['where sem id', { where: { name: 'Alfa' } }],
+      ['id só dentro de OR', { where: { OR: [{ id: TENANT }] } }],
+      ['id como filtro in', { where: { id: { in: [TENANT] } } }],
+      ['id vazio', { where: { id: '' } }],
+    ])('recusa findMany %s', (_case, args) => {
+      expect(checkFirm('findMany', args)).toThrow(
+        'falta o id do escritório no nível superior do where',
+      );
+    });
+
+    it('recusa criar escritórios fora do módulo auth', () => {
+      for (const operation of ['create', 'createMany', 'upsert']) {
+        expect(
+          checkFirm(operation, {
+            where: { id: TENANT },
+            data: { name: 'x' },
+            create: { name: 'x' },
+            update: {},
+          }),
+        ).toThrow('o escritório só é criado no módulo auth');
+      }
+    });
+
+    it('recusa update que muda o id do escritório', () => {
+      expect(
+        checkFirm('update', { where: { id: TENANT }, data: { id: 'outro' } }),
+      ).toThrow('o data não pode alterar o id do escritório');
+    });
+
+    it('recusa operações desconhecidas', () => {
+      expect(checkFirm('findRaw', { where: { id: TENANT } })).toThrow(
+        'operação sem verificação de tenant',
+      );
+    });
   });
 
   describe('leitura e alteração', () => {
@@ -148,6 +198,10 @@ describe('Verificação de tenant no Prisma (D16)', () => {
     );
     await expect(
       client.user.findFirst({ where: { id: TENANT } }),
+    ).rejects.toThrow(TenantScopeViolationError);
+    // Pelo escritório, sem id, chegar-se-ia às empresas de todos os tenants.
+    await expect(
+      client.accountingFirm.findMany({ include: { companies: true } }),
     ).rejects.toThrow(TenantScopeViolationError);
   });
 });
