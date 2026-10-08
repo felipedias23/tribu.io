@@ -113,8 +113,10 @@ export class PutTaxProfileDto {
   })
   @IsOptional()
   @TrimToNull()
-  @Matches(/^\d{4}-(0[1-9]|1[0-2])$/, {
-    message: 'Informe o mês de referência no formato AAAA-MM (ex.: 2026-09).',
+  // Anos de 1900 a 2099: o ano 0000 passava no formato e o banco recusava-o (500).
+  @Matches(/^(19|20)\d{2}-(0[1-9]|1[0-2])$/, {
+    message:
+      'Informe o mês de referência no formato AAAA-MM, entre 1900 e 2099 (ex.: 2026-09).',
   })
   referencePeriod?: string | null;
 }

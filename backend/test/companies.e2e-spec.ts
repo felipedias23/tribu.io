@@ -199,6 +199,16 @@ describe('Empresas (e2e)', () => {
       await list(tenant.viewer, '?pageSize=101').expect(400);
       await list(tenant.viewer, '?page=0').expect(400);
     });
+
+    it('recusa páginas fora do limite com 400, não com 500', async () => {
+      await list(tenant.viewer, '?page=1000000').expect(200);
+      for (const page of ['1000001', '1e300']) {
+        const response = await list(tenant.viewer, `?page=${page}`).expect(400);
+        expect(response.body.details).toEqual([
+          expect.objectContaining({ field: 'page' }),
+        ]);
+      }
+    });
   });
 
   describe('GET e PATCH /companies/:id', () => {

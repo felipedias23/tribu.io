@@ -137,6 +137,22 @@ describe('Perfil tributário (e2e)', () => {
     ]);
   });
 
+  it('recusa meses de referência fora de 1900 a 2099 com 400, não com 500', async () => {
+    const company = await createCompany(prisma, a.firmId);
+
+    for (const referencePeriod of ['1900-01', '2099-12']) {
+      await put(a.admin, company.id, { referencePeriod }).expect(200);
+    }
+    for (const referencePeriod of ['0000-01', '1899-12', '2100-01']) {
+      const response = await put(a.admin, company.id, {
+        referencePeriod,
+      }).expect(400);
+      expect(response.body.details).toEqual([
+        expect.objectContaining({ field: 'referencePeriod' }),
+      ]);
+    }
+  });
+
   it('recusa campos fora do contrato, como o escritório ou a empresa', async () => {
     const company = await createCompany(prisma, a.firmId);
 
