@@ -87,4 +87,4 @@ O modelo completo está no [`.env.example`](../.env.example).
 
 A sessão pressupõe **uma única origem**: o mesmo domínio serve o frontend e faz proxy de `/api` (como o nginx do Docker). Frontend e API em domínios diferentes quebrariam o `SameSite=Strict` e exigiriam CORS com credenciais e proteção CSRF adicional.
 
-Antes do deploy: `COOKIE_SECURE=true` (HTTPS), `JWT_SECRET` próprio, `TRUST_PROXY_HOPS` conforme a infraestrutura, e `helmet` na API.
+Antes do deploy: `NODE_ENV=production` (padrão da imagem), `COOKIE_SECURE=true` (HTTPS), `JWT_SECRET` próprio e `TRUST_PROXY_HOPS` conforme a infraestrutura. Com `NODE_ENV=production`, a API e o seed recusam arrancar com valores do `.env.example` ou com `COOKIE_SECURE=false` (D19). O `helmet` já define os cabeçalhos de segurança da API; o `upgrade-insecure-requests` da CSP só é enviado com `COOKIE_SECURE=true`.

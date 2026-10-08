@@ -12,7 +12,11 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import * as argon2 from 'argon2';
 import { z } from 'zod';
 import { cnpjCheckDigits } from '../companies/cnpj';
-import { databaseUrlSchema, parseOrThrow } from '../config/env.validation';
+import {
+  databaseUrlSchema,
+  parseOrThrow,
+  rejectExampleValues,
+} from '../config/env.validation';
 import { PrismaClient, Role, TaxRegime } from '../generated/prisma/client';
 
 /** Escritórios fictícios. Sem CNPJ, para não coincidir com empresas reais. */
@@ -168,12 +172,22 @@ export const SEED_TAX_PROFILES = SEED_COMPANIES.flatMap((company) => {
   ];
 });
 
-const seedEnvSchema = z.object({
-  DATABASE_URL: databaseUrlSchema,
-  SEED_PASSWORD: z
-    .string({ error: 'obrigatória para criar as contas de desenvolvimento' })
-    .min(8, 'deve ter pelo menos 8 caracteres'),
-});
+const seedEnvSchema = z
+  .object({
+    NODE_ENV: z.string().optional(),
+    DATABASE_URL: databaseUrlSchema,
+    SEED_PASSWORD: z
+      .string({ error: 'obrigatória para criar as contas de desenvolvimento' })
+      .min(8, 'deve ter pelo menos 8 caracteres'),
+  })
+  // Recusa antes de criar contas: no arranque, o seed corre antes da API.
+  .superRefine((env, ctx) =>
+    rejectExampleValues(env, ['DATABASE_URL', 'SEED_PASSWORD'], ctx),
+  );
+
+export function validateSeedEnv(config: Record<string, unknown>) {
+  return parseOrThrow(seedEnvSchema, config);
+}
 
 /**
  * Cria ou atualiza os dados fictícios. A password só é definida na criação:
@@ -232,7 +246,7 @@ export async function seed(prisma: PrismaClient, password: string) {
 }
 
 async function main(): Promise<void> {
-  const env = parseOrThrow(seedEnvSchema, process.env);
+  const env = validateSeedEnv(process.env);
   const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString: env.DATABASE_URL }),
   });

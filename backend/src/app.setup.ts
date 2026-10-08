@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { validationExceptionFactory } from './common/validation/validation-exception.factory';
 import type { Env } from './config/env.validation';
@@ -20,6 +21,17 @@ export function configureApp(app: NestExpressApplication): void {
   // proxies impede que o cliente falsifique o IP enviando o próprio cabeçalho.
   const config = app.get<ConfigService<Env, true>>(ConfigService);
   app.set('trust proxy', config.get('TRUST_PROXY_HOPS', { infer: true }));
+  // Cabeçalhos de segurança (CSP, nosniff, frame-ancestors, HSTS…). Os
+  // padrões do helmet servem à API e ao Swagger UI, que não usa scripts inline.
+  // Sem HTTPS (ambiente local), o browser não pode ser mandado para https://.
+  const https = config.get('COOKIE_SECURE', { infer: true });
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: { upgradeInsecureRequests: https ? [] : null },
+      },
+    }),
+  );
   app.use(cookieParser());
 
   // Sem CORS: o frontend acede à API pela mesma origem (proxy nginx/Vite).
