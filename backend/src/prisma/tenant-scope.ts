@@ -19,6 +19,13 @@ export const TENANT_MODELS: ReadonlySet<string> = new Set(
     .map(([model]) => model),
 );
 
+/**
+ * O próprio tenant. Não tem `accountingFirmId`, mas as suas relações levam a
+ * todos os dados do escritório (`include: { companies: true }`): é verificado
+ * pelo `id` no `where`.
+ */
+export const TENANT_ROOT_MODEL = 'AccountingFirm';
+
 /** Operações que leem ou alteram registos existentes: exigem tenant no `where`. */
 const WHERE_OPERATIONS = new Set([
   'findUnique',
@@ -70,10 +77,47 @@ function hasTenant(value: unknown): boolean {
   );
 }
 
+function hasTenantId(value: unknown): boolean {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as Record<string, unknown>).id === 'string' &&
+    (value as Record<string, string>).id !== ''
+  );
+}
+
 function setsTenant(value: unknown): boolean {
   return (
     typeof value === 'object' && value !== null && 'accountingFirmId' in value
   );
+}
+
+/**
+ * O escritório só é lido ou alterado pelo seu `id`, no nível superior do
+ * `where`. Criar escritórios (registo) e upsert ficam no cliente `unscoped`.
+ */
+function assertTenantRootScoped(
+  operation: string,
+  args: Args,
+  fail: (reason: string) => never,
+): void {
+  if (CREATE_OPERATIONS.has(operation) || operation === 'upsert') {
+    fail('o escritório só é criado no módulo auth (cliente unscoped)');
+  }
+  if (!WHERE_OPERATIONS.has(operation)) {
+    fail('operação sem verificação de tenant');
+  }
+  if (!hasTenantId(args?.where)) {
+    fail('falta o id do escritório no nível superior do where');
+  }
+  if (
+    UPDATE_OPERATIONS.has(operation) &&
+    typeof args?.data === 'object' &&
+    args.data !== null &&
+    'id' in args.data
+  ) {
+    fail('o data não pode alterar o id do escritório');
+  }
 }
 
 /**
@@ -82,6 +126,7 @@ function setsTenant(value: unknown): boolean {
  *   `where` (dentro de `OR`, `AND` ou `NOT`, ou como `{ in: [...] }`, não conta);
  * - criação: `accountingFirmId` em cada `data`;
  * - alteração: `accountingFirmId` não pode estar no `data`.
+ * O próprio escritório (`AccountingFirm`) é verificado pelo `id`.
  * Operações desconhecidas são recusadas.
  *
  * Não cobre `$queryRaw` (regra S6) nem escritas aninhadas a partir de outro
@@ -92,11 +137,15 @@ export function assertTenantScoped(
   operation: string,
   args: Args,
 ): void {
-  if (!TENANT_MODELS.has(model)) return;
-
-  const fail = (reason: string) => {
+  const fail = (reason: string): never => {
     throw new TenantScopeViolationError(model, operation, reason);
   };
+
+  if (model === TENANT_ROOT_MODEL) {
+    assertTenantRootScoped(operation, args, fail);
+    return;
+  }
+  if (!TENANT_MODELS.has(model)) return;
 
   if (CREATE_OPERATIONS.has(operation)) {
     const data = args?.data;
