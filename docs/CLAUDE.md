@@ -22,7 +22,7 @@ O **Tribu.io** é um SaaS Web B2B para escritórios de contabilidade que atua co
 - `AccountingFirm` é a entidade do *tenant*.
 - **Isolamento Total:** Nenhum usuário de um tenant pode acessar empresas, análises ou dados de outro tenant.
 - Todos os endpoints e consultas ao banco devem validar estritamente o `tenantId`.
-- **Toda funcionalidade nova segue o [padrão de desenvolvimento seguro](seguranca.md)** (regras S1–S26).
+- **Toda funcionalidade nova segue o [padrão de desenvolvimento seguro](seguranca.md)** (regras S1–S27).
 
 ### Tax Engine (Núcleo Tributário)
 - **Determinístico e Auditável:** NUNCA utilize LLM (IA) para realizar cálculos ou decisões tributárias.

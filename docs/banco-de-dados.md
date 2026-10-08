@@ -63,7 +63,7 @@ Todos os campos tributários aceitam `NULL`, que significa **dado ausente**, dif
 | `state` | `char(2)` | uma das 27 UFs (`CHECK`) |
 | `revenue_12m` | `decimal(15,2)` | receita bruta dos 12 meses anteriores ao período (RBT12), ≥ 0 (`CHECK`) |
 | `payroll_12m` | `decimal(15,2)` | folha dos mesmos 12 meses, ≥ 0 (`CHECK`) |
-| `reference_period` | `date` | mês de referência, sempre o 1.º dia (`CHECK`) |
+| `reference_period` | `date` | mês de referência, sempre o 1.º dia (`CHECK`); a API aceita anos de 1900 a 2099 |
 | `created_at`, `updated_at` | `timestamptz(3)` | preenchidos automaticamente |
 
 ### Restrições

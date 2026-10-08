@@ -39,7 +39,7 @@ logout ─► tokenVersion + 1 ─► apaga o cookie
 | Enumeração pelo tempo de resposta | Email inexistente também corre argon2 contra um hash fictício |
 | IP falsificado para contornar o limite | `trust proxy` com número exato de proxies (`TRUST_PROXY_HOPS`) |
 | Campos internos no pedido (`role`, `accountingFirmId`, …) | `ValidationPipe` com `whitelist` e `forbidNonWhitelisted`: 400 |
-| CSRF | `SameSite=Strict` + mesma origem (nginx serve o frontend e faz proxy de `/api`) |
+| CSRF | `SameSite=Strict` + mesma origem (nginx serve o frontend e faz proxy de `/api`); a API só lê corpos em JSON, e um formulário HTML de outro site recebe 415 (D24) |
 
 O registo devolve 409 para email já registado (decisão aprovada: mensagens claras, com rate limit a travar a enumeração).
 
@@ -51,7 +51,7 @@ O tenant (`accountingFirmId`) vem **só** da sessão. Nunca do corpo, da query n
 
 1. No controller, obtenha o tenant com `@CurrentTenant() tenantId: TenantId`.
 2. O service recebe `tenantId: TenantId` como primeiro parâmetro. O tipo `TenantId` só é produzido pelo decorator, por isso o TypeScript rejeita uma string vinda do pedido.
-3. Toda consulta filtra por tenant: `where: { id, accountingFirmId: tenantId }`, também em `update` e `delete`. O service injeta `@Inject(PrismaService)`, que recusa a query se o filtro faltar (D16). Um model novo entra em `SCALAR_FIELDS` de [`tenant-scope.ts`](../backend/src/prisma/tenant-scope.ts); o TypeScript não compila sem ele.
+3. Toda consulta filtra por tenant: `where: { id, accountingFirmId: tenantId }`, também em `update` e `delete`. O service injeta `@Inject(PrismaService)`, que recusa a query se o filtro faltar (D16). O próprio escritório só é lido pelo `id`: `where: { id: tenantId }` (D25). Um model novo entra em `SCALAR_FIELDS` de [`tenant-scope.ts`](../backend/src/prisma/tenant-scope.ts); o TypeScript não compila sem ele.
 4. Recurso de outro escritório responde **404**, com a mesma mensagem de um ID inexistente.
 5. DTOs nunca têm `accountingFirmId`.
 6. Na base de dados, toda tabela do tenant tem `accounting_firm_id NOT NULL` e as FKs entre tabelas do tenant são compostas `(x_id, accounting_firm_id)` (decisão D15).

@@ -1,6 +1,6 @@
 # Relatório Técnico — Fase 1 (Análise e Arquitetura)
 
-> Status: **aprovado** em 2026-09-26. Decisões D10–D14 aprovadas em 2026-09-27 (autenticação, semana 2). Decisões D15–D20 aprovadas em 2026-09-28 (auditoria de segurança, [seguranca.md](seguranca.md)). D21, aprovada em 2026-09-27 com o layout base, registada em 2026-09-28. D22 aprovada em 2026-10-02 (fecho da semana 2).
+> Status: **aprovado** em 2026-09-26. Decisões D10–D14 aprovadas em 2026-09-27 (autenticação, semana 2). Decisões D15–D20 aprovadas em 2026-09-28 (auditoria de segurança, [seguranca.md](seguranca.md)). D21, aprovada em 2026-09-27 com o layout base, registada em 2026-09-28. D22 aprovada em 2026-10-02 (fecho da semana 2). D24 e D25 aprovadas em 2026-10-08 (revisão de fragilidades antes da semana 4, [seguranca.md](seguranca.md#estado-de-implementação)).
 > Fontes: [definicao-do-produto.md](definicao-do-produto.md), [instrucoes-fase-analise.md](instrucoes-fase-analise.md), [regras-academicas.md](regras-academicas.md), [CLAUDE.md](CLAUDE.md).
 
 ## 1. Estado inicial
@@ -36,6 +36,8 @@
 | D21 | Navegação por papel | Todas as secções aparecem para todos os papéis; cada secção recebe restrição quando a regra da sua funcionalidade for aprovada, protegida também na rota e na API (esconder no frontend é só conveniência, S24) |
 | D22 | Criação de utilizadores | `POST /users` (o `ADMIN` acrescenta colegas ao escritório) sai da semana 2 e passa à lista de extras (US17). A forma de o colega receber o acesso (password temporária ou link por email) é decidida antes da implementação. Na semana 2, a gestão da equipa é editar nome e papel (US05) |
 | D23 | Deploy só na semana 7 | O primeiro deploy público sai da semana 3 e fica para a semana 7, como no plano do professor, para evitar custos de hospedagem antes do fim do projeto. Com ele vão a escolha do fornecedor (D8) e os papéis do banco (D18). D19 e `helmet` ficam na semana 3, porque não dependem do fornecedor |
+| D24 | Corpo dos pedidos só em JSON | A API responde 415 a um corpo que não seja `application/json`. Um formulário HTML de outro site (`x-www-form-urlencoded`, sem preflight de CORS) deixa de ser lido, o que junta uma defesa contra CSRF ao `SameSite=Strict` (D7). Pedidos sem corpo, como o logout, continuam aceites |
+| D25 | Verificação de tenant cobre o escritório | A verificação da D16 passa a abranger o próprio `AccountingFirm`, que não tem `accountingFirmId` mas cujas relações levam a todos os dados do escritório. Pelo cliente com verificação, o escritório só é lido ou alterado pelo `id` no nível superior do `where`; criá-lo só no registo (módulo `auth`, cliente `unscoped`) |
 | — | Banco | PostgreSQL + Prisma ([ADR 0001](adr/0001-postgresql-prisma.md)) |
 | — | Forma de trabalho | Projeto individual; PRs revistos pelo professor; Conventional Commits |
 
