@@ -57,7 +57,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = http.getRequest<Request>();
     const response = http.getResponse<Response>();
 
-    const body = this.toErrorResponse(exception, request.url);
+    const body = this.toErrorResponse(exception, request.originalUrl);
     if (body.statusCode >= 500) {
       this.logger.error(describeForLog(exception));
     }

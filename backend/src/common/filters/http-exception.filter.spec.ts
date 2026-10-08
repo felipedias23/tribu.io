@@ -12,7 +12,7 @@ function createHost() {
   const status = jest.fn().mockReturnValue({ json });
   const host = {
     switchToHttp: () => ({
-      getRequest: () => ({ url: '/api/v1/teste' }),
+      getRequest: () => ({ originalUrl: '/api/v1/teste' }),
       getResponse: () => ({ status }),
     }),
   } as unknown as ArgumentsHost;

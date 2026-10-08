@@ -1,6 +1,7 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
+import { JsonOnlyMiddleware } from './common/middleware/json-only.middleware';
 import { CompaniesModule } from './companies/companies.module';
 import { validateEnv } from './config/env.validation';
 import { HealthModule } from './health/health.module';
@@ -26,4 +27,8 @@ import { UsersModule } from './users/users.module';
     HealthModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(JsonOnlyMiddleware).forRoutes('*path');
+  }
+}
