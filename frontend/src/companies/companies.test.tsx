@@ -72,6 +72,76 @@ describe('empresas', () => {
     expect(pages).toEqual(['1', '2']);
   });
 
+  it('paginar mantém a pesquisa', async () => {
+    signedInAs(demoUser);
+    const requests: string[] = [];
+    server.use(
+      http.get('/api/v1/companies', ({ request }) => {
+        const params = new URL(request.url).searchParams;
+        requests.push(`${params.get('search')} ${params.get('page')}`);
+        return companiesPage([oficina], 45, Number(params.get('page')));
+      }),
+    );
+    const { router } = renderRoute('/companies?search=ltda');
+
+    expect(await screen.findByText('Página 1 de 3 · 45 empresas')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Seguinte' }));
+
+    expect(await screen.findByText('Página 2 de 3 · 45 empresas')).toBeInTheDocument();
+    expect(requests).toEqual(['ltda 1', 'ltda 2']);
+    expect(Object.fromEntries(new URLSearchParams(router.state.location.search))).toEqual({
+      search: 'ltda',
+      page: '2',
+    });
+  });
+
+  it('uma pesquisa nova volta à primeira página', async () => {
+    signedInAs(demoUser);
+    const requests: string[] = [];
+    server.use(
+      http.get('/api/v1/companies', ({ request }) => {
+        const params = new URL(request.url).searchParams;
+        requests.push(`${params.get('search')} ${params.get('page')}`);
+        return companiesPage([oficina], 45, Number(params.get('page')));
+      }),
+    );
+    const { router } = renderRoute('/companies?page=3');
+
+    expect(await screen.findByText('Página 3 de 3 · 45 empresas')).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Pesquisar empresas' }), 'oficina');
+    await userEvent.click(screen.getByRole('button', { name: 'Pesquisar' }));
+
+    expect(await screen.findByText('Página 1 de 3 · 45 empresas')).toBeInTheDocument();
+    expect(requests.at(-1)).toBe('oficina 1');
+    expect(router.state.location.search).toBe('?search=oficina');
+  });
+
+  it('depois de editar, a lista mostra os dados novos', async () => {
+    signedInAs(demoUser);
+    let current = oficina;
+    server.use(
+      http.get('/api/v1/companies', () => companiesPage([current])),
+      http.get(`/api/v1/companies/${oficina.id}`, () => HttpResponse.json(current)),
+      http.patch(`/api/v1/companies/${oficina.id}`, () => {
+        current = { ...oficina, legalName: 'Oficina Renovada Ltda' };
+        return HttpResponse.json(current);
+      }),
+    );
+    renderRoute('/companies');
+
+    await userEvent.click(await screen.findByRole('link', { name: 'Oficina Exemplo Ltda' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Editar' }));
+    const legalName = screen.getByLabelText('Razão social');
+    await userEvent.clear(legalName);
+    await userEvent.type(legalName, 'Oficina Renovada Ltda');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar alterações' }));
+    await screen.findByRole('heading', { name: 'Oficina Renovada Ltda' });
+    await userEvent.click(screen.getByRole('link', { name: '← Empresas' }));
+
+    expect(await screen.findByRole('link', { name: 'Oficina Renovada Ltda' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Oficina Exemplo Ltda' })).not.toBeInTheDocument();
+  });
+
   it('VIEWER consulta, mas não vê as ações de cadastrar e editar', async () => {
     signedInAs(viewer);
     server.use(
@@ -150,6 +220,14 @@ describe('empresas', () => {
     signedInAs(demoUser);
     server.use(http.get('/api/v1/companies/:id', () => errorResponse(404, 'Empresa não encontrada.')));
     renderRoute(`/companies/${oficina.id}`);
+
+    expect(await screen.findByRole('heading', { name: 'Empresa não encontrada' })).toBeInTheDocument();
+  });
+
+  it('ID que não é UUID (400) também mostra "não encontrada"', async () => {
+    signedInAs(demoUser);
+    server.use(http.get('/api/v1/companies/:id', () => errorResponse(400, 'Dados inválidos.')));
+    renderRoute('/companies/nao-e-uuid');
 
     expect(await screen.findByRole('heading', { name: 'Empresa não encontrada' })).toBeInTheDocument();
   });

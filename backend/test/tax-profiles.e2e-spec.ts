@@ -153,6 +153,42 @@ describe('Perfil tributário (e2e)', () => {
     }
   });
 
+  it('aceita o maior valor que cabe na coluna e recusa o que não cabe', async () => {
+    const company = await createCompany(prisma, a.firmId);
+
+    const max = await put(a.admin, company.id, {
+      revenue12m: '9999999999999.99',
+    }).expect(200);
+    expect(max.body.revenue12m).toBe('9999999999999.99');
+
+    for (const revenue12m of ['10000000000000', '1.234']) {
+      const response = await put(a.admin, company.id, { revenue12m }).expect(
+        400,
+      );
+      expect(response.body.details).toEqual([
+        expect.objectContaining({ field: 'revenue12m' }),
+      ]);
+    }
+  });
+
+  it('valor em branco é dado ausente (null); CNAE exige 7 dígitos', async () => {
+    const company = await createCompany(prisma, a.firmId);
+
+    const response = await put(a.admin, company.id, {
+      revenue12m: '  ',
+      payroll12m: '',
+      cnae: '',
+    }).expect(200);
+    expect(response.body).toMatchObject({
+      revenue12m: null,
+      payroll12m: null,
+      cnae: null,
+    });
+
+    await put(a.admin, company.id, { cnae: '620150' }).expect(400);
+    await put(a.admin, company.id, { cnae: '62015011' }).expect(400);
+  });
+
   it('recusa campos fora do contrato, como o escritório ou a empresa', async () => {
     const company = await createCompany(prisma, a.firmId);
 

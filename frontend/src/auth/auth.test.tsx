@@ -103,6 +103,19 @@ describe('autenticação', () => {
     expect(loggedOut).toBe(true);
   });
 
+  it('sair sem rede também termina a sessão no browser', async () => {
+    server.use(
+      http.get('/api/v1/auth/me', () => HttpResponse.json(demoUser)),
+      http.post('/api/v1/auth/logout', () => HttpResponse.error()),
+    );
+    const { router } = renderRoute('/');
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Sair' }));
+
+    expect(await screen.findByRole('heading', { name: 'Entrar' })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/login');
+  });
+
   it('com sessão, o login redireciona para o Tax Radar', async () => {
     server.use(http.get('/api/v1/auth/me', () => HttpResponse.json(demoUser)));
     const { router } = renderRoute('/login');
