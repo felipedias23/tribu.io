@@ -16,7 +16,7 @@ testes ─► matriz BOLA (A → B = 404) · inventário de rotas · catálogo d
 | Camada | O que garante | O que não garante |
 |---|---|---|
 | `TenantId` vindo da sessão | O tenant nunca vem do pedido | Que a query o use |
-| Verificação de tenant no Prisma (D16) | Toda query sobre tabela do tenant filtra por `accountingFirmId` | Que o valor seja o certo (isso é o `TenantId`); `$queryRaw` |
+| Verificação de tenant no Prisma (D16) | Toda query sobre tabela do tenant filtra por `accountingFirmId`, e o próprio escritório só é lido pelo `id` | Que o valor seja o certo (isso é o `TenantId`); `$queryRaw` |
 | FKs compostas (D15) | Um registo do tenant A nunca aponta para um do tenant B | Leituras sem filtro |
 | Testes (D17) | Cada rota e cada tabela nova prova o isolamento | — |
 
@@ -30,11 +30,13 @@ As regras valem para todo código novo. Os mecanismos que as verificam automatic
 |---|---|
 | `TenantId` vindo da sessão (`@CurrentTenant()`), 404 para outro escritório, testes e2e A/B em `/users` | Implementado (semana 2) |
 | Rate limit no login e registo, `ValidationPipe` com `forbidNonWhitelisted`, testes de sessão e de papéis | Implementado (semana 2) |
-| Verificação de tenant no Prisma (D16) | Implementado (semana 3): [`tenant-scope.ts`](../backend/src/prisma/tenant-scope.ts); import do cliente `unscoped` fora de `auth` bloqueado pelo ESLint (S5) |
+| Verificação de tenant no Prisma (D16) | Implementado (semana 3): [`tenant-scope.ts`](../backend/src/prisma/tenant-scope.ts); import do cliente `unscoped` fora de `auth` bloqueado pelo ESLint (S5). Desde a semana 4 cobre também `AccountingFirm`, que só é lido ou alterado pelo `id` e só é criado no módulo `auth` |
+| Logs de erros 5xx sem valores (S21) | Implementado (semana 4): [`http-exception.filter.ts`](../backend/src/common/filters/http-exception.filter.ts) regista só o nome, o código e o stack dos erros do Prisma, cuja mensagem traz os argumentos da query |
 | Matriz BOLA, inventário de rotas e catálogo do schema (D17) | Implementado (semana 3): [`bola-matrix.ts`](../backend/test/support/bola-matrix.ts), [`route-inventory.e2e-spec.ts`](../backend/test/route-inventory.e2e-spec.ts), [`schema-catalog.e2e-spec.ts`](../backend/test/schema-catalog.e2e-spec.ts) |
 | FKs compostas (D15) | Implementado (semana 3): `tax_profiles` → `companies`; cada tabela nova é verificada pelo catálogo do schema |
 | Arranque recusado em produção com valores de exemplo (D19, S25) | Implementado (semana 3): [`env.validation.ts`](../backend/src/config/env.validation.ts), aplicado também ao seed, que corre antes da API. O `docker compose` local usa `NODE_ENV=development`; a imagem usa `production` por padrão |
 | Papel do banco sem superuser nem DDL (D18, S26) | Pendente: com o deploy público (semana 7, D23) |
+| Endurecimento do deploy | Pendente (semana 7, D23), encontrado na revisão de 2026-10-08: a API só pode ser alcançada através do proxy, porque confia no `X-Forwarded-For` e o rate limit seria contornado (hoje a porta 3000 só está publicada em `127.0.0.1`); CSP e HSTS no nginx para o frontend; Swagger (`/api/docs`) fechado ou protegido em produção; limite de memória do argon2 conforme o fornecedor |
 | `helmet` | Implementado (semana 3): [`app.setup.ts`](../backend/src/app.setup.ts), verificado por [`security-headers.e2e-spec.ts`](../backend/test/security-headers.e2e-spec.ts). Os cabeçalhos da API vêm só do helmet; o nginx define os do frontend |
 
 Enquanto um mecanismo está pendente, a regra correspondente é verificada na revisão do PR.
@@ -97,7 +99,7 @@ Fazem parte da [Definition of Done](CLAUDE.md#5-definition-of-done-dod).
 | Matriz BOLA | e2e | Um pedido do escritório A a um `:id` do B (GET, PATCH, PUT, DELETE) não responde 404 igual ao de um ID inexistente, ou altera dados do B |
 | Inventário de rotas | e2e | Surge um `@Public()` fora da allowlist ou uma rota com `:id` sem linha na matriz BOLA |
 | Catálogo do schema | e2e | Uma tabela do tenant não tem `accounting_firm_id NOT NULL`, ou uma FK entre tabelas do tenant não é composta |
-| Verificação de tenant no Prisma | unit | Uma query sobre tabela do tenant sem `accountingFirmId` (ou só dentro de `OR`), ou um `create` sem tenant, não é recusada |
+| Verificação de tenant no Prisma | unit | Uma query sobre tabela do tenant sem `accountingFirmId` (ou só dentro de `OR`), um `create` sem tenant, ou uma query a `AccountingFirm` sem `id` no `where`, não é recusada |
 | Papéis | e2e | Um papel sem permissão não recebe 403 numa rota de escrita ou administrativa |
 | Oráculo de unicidade | e2e | Criar num escritório um registo com a mesma chave de negócio de outro escritório (ex.: CNPJ de uma empresa) não é aceite. Não se aplica às exceções da S9 |
 | Campos proibidos | e2e | `accountingFirmId`, `role`, `tokenVersion` ou IDs de outro recurso no corpo não são rejeitados com 400 |
