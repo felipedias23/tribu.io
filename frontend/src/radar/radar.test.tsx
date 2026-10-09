@@ -20,6 +20,7 @@ const oportunidade: RadarItem = {
     },
   ],
   ruleVersion: { id: 'f0000000-0000-4000-8000-000000000101', version: 1, evaluatorKey: 'SIMPLES_FATOR_R@1' },
+  lastAnalysis: { id: 'aaaaaaaa-0000-4000-8000-000000000001', status: 'COMPLETED', executedAt: '2026-10-09T20:16:41.513Z' },
   result: { fatorR: '0.27', annex: 'V', bracket: 4, effectiveRate: '0.1908' },
 };
 
@@ -29,6 +30,7 @@ const semPerfil: RadarItem = {
   priorityScore: 1000,
   reasons: [{ code: 'NO_PROFILE', message: 'A empresa ainda não tem perfil tributário.' }],
   ruleVersion: null,
+  lastAnalysis: null,
   result: null,
 };
 
@@ -59,11 +61,19 @@ describe('Tax Radar', () => {
     expect(within(row).getByText(oportunidade.reasons[0].message)).toBeInTheDocument();
     expect(within(row).getByText('Fator R 27,00% · Anexo V · alíquota efetiva 19,08%')).toBeInTheDocument();
     expect(within(row).getByText('12.ABC.345/01DE-35')).toBeInTheDocument();
-    expect(within(row).getByRole('link')).toHaveAttribute('href', `/companies/${oportunidade.company.id}`);
+    expect(within(row).getByRole('link', { name: oportunidade.company.legalName })).toHaveAttribute(
+      'href',
+      `/companies/${oportunidade.company.id}`,
+    );
 
     const empty = screen.getByRole('link', { name: 'Consultoria Demonstração Ltda' }).closest('tr')!;
     expect(within(empty).getByText('Dados incompletos')).toBeInTheDocument();
     expect(within(empty).getByText('Sem cálculo')).toBeInTheDocument();
+    expect(within(row).getByRole('link', { name: /Última análise/ })).toHaveAttribute(
+      'href',
+      '/analyses/aaaaaaaa-0000-4000-8000-000000000001',
+    );
+    expect(within(empty).queryByRole('link', { name: /Última análise/ })).not.toBeInTheDocument();
     expect(screen.getByText('Página 1 de 1 · 2 empresas')).toBeInTheDocument();
   });
 
@@ -73,7 +83,10 @@ describe('Tax Radar', () => {
     renderRoute('/radar');
 
     await screen.findByRole('link', { name: 'Agência Fictícia de Viagens Ltda' });
-    const names = within(screen.getByRole('table')).getAllByRole('link').map((link) => link.textContent);
+    const names = within(screen.getByRole('table'))
+      .getAllByRole('link')
+      .map((link) => link.textContent)
+      .filter((name) => !name?.startsWith('Última análise'));
     expect(names).toEqual(['Agência Fictícia de Viagens Ltda', 'Consultoria Demonstração Ltda']);
   });
 

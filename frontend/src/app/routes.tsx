@@ -6,6 +6,7 @@ import { RequireAuth } from '../auth/RequireAuth';
 import { CompaniesPage } from '../companies/CompaniesPage';
 import { CompanyDetailPage } from '../companies/CompanyDetailPage';
 import { CompanyNewPage } from '../companies/CompanyNewPage';
+import { AnalysisPage } from '../analyses/AnalysisPage';
 import { RadarPage } from '../radar/RadarPage';
 import { PlaceholderPage } from '../shared/components/PlaceholderPage';
 import { AppLayout } from './AppLayout';
@@ -39,6 +40,7 @@ export const routes: RouteObject[] = [
               { path: '/companies', element: <CompaniesPage /> },
               { path: '/companies/new', element: <CompanyNewPage /> },
               { path: '/companies/:id', element: <CompanyDetailPage /> },
+              { path: '/analyses/:id', element: <AnalysisPage /> },
               { path: '/imports', element: <PlaceholderPage title="Importações" /> },
               { path: '/audit', element: <PlaceholderPage title="Auditoria" /> },
               { path: '/settings/*', element: <PlaceholderPage title="Configurações" /> },

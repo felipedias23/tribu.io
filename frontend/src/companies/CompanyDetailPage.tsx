@@ -11,10 +11,12 @@ import { CompanyForm } from './CompanyForm';
 import { canEditCompanies } from './permissions';
 import { TaxProfileSection } from './TaxProfileSection';
 import { radarKeys } from '../radar/api';
+import { AnalysesSection } from '../analyses/AnalysesSection';
+import { canRunAnalyses } from '../analyses/permissions';
 
 const dateFormat = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' });
 
-/** Dados de uma empresa e edição (US06), com o perfil tributário (US08). */
+/** Dados de uma empresa e edição (US06), com o perfil tributário (US08) e as análises (US09). */
 export function CompanyDetailPage() {
   const { id = '' } = useParams();
   const { user } = useAuth();
@@ -98,6 +100,7 @@ export function CompanyDetailPage() {
           )}
 
           <TaxProfileSection companyId={company.id} canEdit={!!user && canEditCompanies(user.role)} />
+          <AnalysesSection companyId={company.id} canRun={!!user && canRunAnalyses(user.role)} />
         </>
       )}
     </section>

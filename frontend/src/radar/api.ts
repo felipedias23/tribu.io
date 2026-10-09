@@ -17,6 +17,8 @@ export interface RadarItem {
   priorityScore: number;
   reasons: { code: string; message: string }[];
   ruleVersion: { id: string; version: number; evaluatorKey: string } | null;
+  /** Última análise da empresa; null se nunca foi analisada. */
+  lastAnalysis: { id: string; status: 'COMPLETED' | 'INCOMPLETE'; executedAt: string } | null;
   result: { fatorR: string; annex: 'III' | 'V'; bracket: number; effectiveRate: string } | null;
 }
 
