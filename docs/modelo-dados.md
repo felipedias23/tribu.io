@@ -65,6 +65,7 @@ erDiagram
         decimal revenue12m "Decimal(15,2)"
         decimal payroll12m "Decimal(15,2)"
         date referencePeriod "1.º dia do mês"
+        boolean fatorRSubject "atividade sujeita ao Fator R; nulo = não informado (D33)"
         datetime createdAt
         datetime updatedAt
     }

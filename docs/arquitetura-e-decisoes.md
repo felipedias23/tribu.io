@@ -1,6 +1,6 @@
 # Relatório Técnico — Fase 1 (Análise e Arquitetura)
 
-> Status: **aprovado** em 2026-09-26. Decisões D10–D14 aprovadas em 2026-09-27 (autenticação, semana 2). Decisões D15–D20 aprovadas em 2026-09-28 (auditoria de segurança, [seguranca.md](seguranca.md)). D21, aprovada em 2026-09-27 com o layout base, registada em 2026-09-28. D22 aprovada em 2026-10-02 (fecho da semana 2). D24 e D25 aprovadas em 2026-10-08 (revisão de fragilidades antes da semana 4, [seguranca.md](seguranca.md#estado-de-implementação)). D26–D30 aprovadas em 2026-10-09 (Tax Engine e Radar, semana 4). D31 aprovada em 2026-10-09 (análises).
+> Status: **aprovado** em 2026-09-26. Decisões D10–D14 aprovadas em 2026-09-27 (autenticação, semana 2). Decisões D15–D20 aprovadas em 2026-09-28 (auditoria de segurança, [seguranca.md](seguranca.md)). D21, aprovada em 2026-09-27 com o layout base, registada em 2026-09-28. D22 aprovada em 2026-10-02 (fecho da semana 2). D24 e D25 aprovadas em 2026-10-08 (revisão de fragilidades antes da semana 4, [seguranca.md](seguranca.md#estado-de-implementação)). D26–D30 aprovadas em 2026-10-09 (Tax Engine e Radar, semana 4). D31 aprovada em 2026-10-09 (análises). D32 e D33 aprovadas em 2026-10-09 (fontes do conteúdo tributário e elegibilidade ao Fator R).
 > Fontes: [definicao-do-produto.md](definicao-do-produto.md), [instrucoes-fase-analise.md](instrucoes-fase-analise.md), [regras-academicas.md](regras-academicas.md), [CLAUDE.md](CLAUDE.md).
 
 ## 1. Estado inicial
@@ -40,10 +40,12 @@
 | D25 | Verificação de tenant cobre o escritório | A verificação da D16 passa a abranger o próprio `AccountingFirm`, que não tem `accountingFirmId` mas cujas relações levam a todos os dados do escritório. Pelo cliente com verificação, o escritório só é lido ou alterado pelo `id` no nível superior do `where`; criá-lo só no registo (módulo `auth`, cliente `unscoped`) |
 | D26 | Radar calculado no pedido (resolve Q1) | O estado de cada empresa é calculado a cada pedido a `GET /radar`, pela mesma função pura do Tax Engine aplicada ao perfil atual, sem gravar nada. `Analysis.radarStatus` guarda só o estado no momento da execução, como histórico. Guardar o estado atual fica como endurecimento futuro, com o mesmo gatilho da fila de processamento ([seguranca.md](seguranca.md#endurecimento-futuro)) |
 | D27 | Papéis nas análises | `ADMIN` e `ANALYST` executam análises; todos os papéis consultam o Radar e as análises; `VIEWER` recebe 403 ao executar (como na D20) |
-| D28 | Regra `SIMPLES_FATOR_R@1` | Ver §3.4.1. Fator R = folha ÷ RBT12, ambos dos 12 meses anteriores ao período; com 28% ou mais, Anexo III, abaixo, Anexo V (LC 123/2006, art. 18, §§ 5º-J, 5º-K e 5º-M). Alíquota efetiva = (RBT12 × alíquota nominal − parcela a deduzir) ÷ RBT12 (art. 18, § 1º-A). A elegibilidade da atividade (CNAE) não é verificada: entra no trace como premissa. Só se aplica ao regime `SIMPLES_NACIONAL` |
+| D28 | Regra `SIMPLES_FATOR_R@1` | Ver §3.4.1. Fator R = folha ÷ RBT12, ambos dos 12 meses anteriores ao período; com 28% ou mais, Anexo III, abaixo, Anexo V (LC 123/2006, art. 18, §§ 5º-J, 5º-K e 5º-M). Alíquota efetiva = (RBT12 × alíquota nominal − parcela a deduzir) ÷ RBT12 (art. 18, § 1º-A). A elegibilidade da atividade (CNAE) não é verificada: entra no trace como premissa (substituído pela D33). Só se aplica ao regime `SIMPLES_NACIONAL` |
 | D29 | Classificação do Radar | Precedência e critérios na §3.5. Margem do limiar (3 p.p.) e idade máxima do período (12 meses) são parâmetros da versão da regra. O mês de referência no futuro passa a ser recusado com 400 no perfil tributário |
 | D30 | Prioridade no Radar | `priorityScore` = peso do estado × 1000 + desempate. Pesos: `REQUER_ANALISE` 4, `OPORTUNIDADE_PARA_AVALIAR` 3, `REVISAR_REGRA` 2, `DADOS_INCOMPLETOS` 1, `NORMAL` 0. Desempate: ⌊999 × (1 − \|Fator R − 0,28\|)⌋ quando há Fator R, senão 0. Empate final pela razão social. A página da análise mostra código, versão, vigência e fonte da regra; a consulta de versões continua extra |
-| D31 | Análises que não calculam | Fora do Simples Nacional, `POST /companies/:id/analyses` responde 422 e nada é gravado: a regra não se aplica. Com dados em falta, RBT12 zero ou acima do limite, ou sem versão vigente no mês, a análise é gravada como `INCOMPLETE`, com o motivo e o que faltou, para ficar registado que se tentou, com que dados e com que versão. Sem mês de referência ou sem versão vigente, a análise não tem versão nem checksum |
+| D31 | Análises que não calculam | Fora do Simples Nacional, `POST /companies/:id/analyses` responde 422 e nada é gravado: a regra não se aplica. Com dados em falta, RBT12 zero ou acima do limite, ou sem versão vigente no mês, a análise é gravada como `INCOMPLETE`, com o motivo e o que faltou, para ficar registado que se tentou, com que dados e com que versão. Sem mês de referência ou sem versão vigente, a análise não tem versão nem checksum. A atividade não sujeita ao Fator R também responde 422 (D33) |
+| D32 | Fonte oficial para todo o conteúdo tributário | Nenhum valor ou conceito tributário (alíquotas, limites, regimes, listas de atividades, prazos) entra no sistema sem norma e dispositivo, link para o texto oficial (Planalto, Diário Oficial, Receita Federal ou CGSN), data da conferência e quem conferiu. Uma regra tributária só é publicada depois da confirmação de uma segunda pessoa, idealmente um contador. Decisões de produto (margens, prazos, pesos) ficam marcadas como tal. Fontes e procedimento de atualização na §3.4.2 |
+| D33 | Elegibilidade ao Fator R confirmada no perfil | O Fator R só se aplica às atividades dos §§ 5º-I e 5º-M do art. 18 da LC 123/2006. O perfil tributário ganha "atividade sujeita ao Fator R" (sim, não, não informado; não informado é dado ausente, D20), editado pelos papéis da D20. Sim: calcula. Não: o Radar mostra `NORMAL` (a regra não se aplica) e a análise responde 422 sem gravar. Não informado: o Radar mostra `DADOS_INCOMPLETOS` e a análise fica `INCOMPLETE`. A premissa passa a dado confirmado. Como muda a entrada do cálculo, entra como evaluator `SIMPLES_FATOR_R@2` numa versão 2 da regra (mesmos parâmetros, vigente desde 2018); a versão 1 passa a `SUPERSEDED`, e as empresas analisadas com ela aparecem com `REVISAR_REGRA`. Os perfis existentes ficam com o campo vazio até o contador confirmar. Implementação no início da semana 5 |
 | — | Banco | PostgreSQL + Prisma ([ADR 0001](adr/0001-postgresql-prisma.md)) |
 | — | Forma de trabalho | Projeto individual; PRs revistos pelo professor; Conventional Commits |
 
@@ -117,15 +119,41 @@ Vigência a partir de 2018-01-01, sem fim. Valores conferidos em 2026-10-09 no [
 
 Os cálculos usam aritmética decimal, nunca vírgula flutuante. A LC 214/2025 (reforma tributária) altera a LC 123 com efeitos futuros; quando a tabela mudar, publica-se uma versão nova, e as análises antigas continuam a apontar para a versão 1.
 
+#### 3.4.2 Fontes e atualização (D32)
+
+| Conteúdo | Fonte oficial | Conferido |
+|---|---|---|
+| Fator R: limiar de 28%, folha e RBT12 dos 12 meses anteriores, fórmula da alíquota efetiva | [LC 123/2006](https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp123.htm), art. 18, §§ 1º-A, 5º-J, 5º-K e 5º-M | 2026-10-09 |
+| Tabelas dos Anexos III e V (§3.4.1) | LC 123/2006, Anexos III e V, redação da LC 155/2016, vigência 01/01/2018 | 2026-10-09 |
+| Atividades sujeitas ao Fator R (D33) | LC 123/2006, art. 18, §§ 5º-I e 5º-M | 2026-10-09 (existência dos parágrafos; a lista de CNAEs não foi importada) |
+| Limite de receita do Simples Nacional (R$ 4.800.000,00) | LC 123/2006, art. 3º, II | 2026-10-09 |
+| Regimes do perfil: Simples Nacional | LC 123/2006 | 2026-10-09 |
+| Regimes do perfil: Lucro Presumido (opção até R$ 78.000.000,00 no ano anterior) e Lucro Real (obrigatoriedade) | [Lei 9.718/1998](https://www.planalto.gov.br/ccivil_03/leis/l9718compilada.htm), arts. 13 e 14 | 2026-10-09 |
+| MEI fora do MVP | Decisão de âmbito, sem base legal | — |
+| Margem de oportunidade (3 p.p.), idade máxima dos dados (12 meses), pesos da prioridade | Decisões de produto (D29, D30) | — |
+
+As conferências de 2026-10-09 foram feitas pelo agente de desenvolvimento, com o texto compilado do Planalto, e ainda aguardam a confirmação de uma segunda pessoa (D32).
+
+**Procedimento de atualização** (todos os meses e antes de cada entrega):
+
+1. Ver o texto compilado da LC 123/2006 no Planalto (as notas "Vide" junto aos anexos e aos artigos assinalam alterações, como a da LC 214/2025, com efeitos futuros) e as resoluções do CGSN.
+2. Se uma fonte da tabela acima mudou: criar a versão nova da regra por migration, com a vigência da norma, os parâmetros e a base legal; uma lógica nova é um evaluator novo.
+3. Testar contra a tabela nova e contra casos de referência externos (exemplos oficiais ou calculados por um contador).
+4. Obter a confirmação de uma segunda pessoa, registada no PR.
+5. Publicar e fechar a vigência da versão anterior. O Radar passa a mostrar `REVISAR_REGRA` nas empresas analisadas com ela.
+6. Atualizar esta tabela com a data da conferência.
+
+A monitorização automática das fontes (comparar o hash das secções relevantes e abrir um alerta quando mudam) fica como extra; avisa, nunca publica.
+
 ### 3.5 Tax Radar
 
 Classificação derivada (não é entidade), calculada a cada pedido (D26) por uma função pura, com precedência fixa (D29):
 
-1. `DADOS_INCOMPLETOS` — sem perfil, sem regime, ou, no Simples Nacional, falta RBT12, folha ou mês de referência.
+1. `DADOS_INCOMPLETOS` — sem perfil, sem regime, ou, no Simples Nacional, falta RBT12, folha, mês de referência ou a confirmação de que a atividade está sujeita ao Fator R (D33).
 2. `REVISAR_REGRA` — nenhuma versão publicada vigente no mês de referência, ou a última análise da empresa usou uma versão que já não é a vigente.
 3. `REQUER_ANALISE` — RBT12 acima de R$ 4.800.000,00 (limite do regime), RBT12 igual a zero (sem base de cálculo), folha maior que o RBT12 (dados inconsistentes), ou mês de referência com mais de 12 meses (dados desatualizados).
 4. `OPORTUNIDADE_PARA_AVALIAR` — Fator R a menos de 3 p.p. do limiar de 28%, de qualquer um dos lados (perto de mudar de anexo).
-5. `NORMAL` — os restantes casos, incluindo empresas fora do Simples Nacional, em que a regra não se aplica (o motivo diz isso).
+5. `NORMAL` — os restantes casos, incluindo empresas fora do Simples Nacional ou com atividade não sujeita ao Fator R, em que a regra não se aplica (o motivo diz isso).
 
 Cada sinal traz `reasons[]` (`code`, `message`, regra, versão, dados usados, ausências, premissas) e um `priorityScore` determinístico (D30). Limiares são parâmetros da versão da regra.
 
@@ -203,13 +231,13 @@ Rotas: `/login`, `/register`, `/radar` (inicial), `/companies`, `/companies/new`
 | 7 | Testes, CI verde, escolha do fornecedor (D8), papéis do banco (D18) e deploy público (D23), acessibilidade, revisão de segurança |
 | 8 | Bugfix, README com screenshots, vídeo de 3 min, demo |
 
-Se houver tempo: análise da carteira em lote, tela de auditoria, criação de utilizadores pelo `ADMIN` (D22, US17), consulta de versões de regras.
+Se houver tempo: análise da carteira em lote, tela de auditoria, criação de utilizadores pelo `ADMIN` (D22, US17), consulta de versões de regras, monitorização automática das fontes legais (D32).
 
 ## 9. Riscos
 
 | Risco | Mitigação |
 |---|---|
-| Conteúdo tributário incorreto | Parâmetros e fonte legal versionados; resultados como suporte à decisão |
+| Conteúdo tributário incorreto | Parâmetros e fonte legal versionados; toda fonte citada e conferida, com confirmação de uma segunda pessoa (D32); elegibilidade confirmada pelo contador (D33); resultados como suporte à decisão |
 | Mudanças legais (Reforma Tributária) | Versionamento com validade temporal |
 | Falsa precisão | Premissas e ausências sempre visíveis; simulações rotuladas como estimativa |
 | Vazamento entre tenants | Defesa em 4 camadas + testes e2e |

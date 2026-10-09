@@ -107,11 +107,12 @@ Acrescentar colegas ao escritório é a US17 (decisão D22).
 
 ### US08 — Preencher o perfil tributário
 
-**Como** contador, **quero** registar os dados tributários de uma empresa (regime, CNAE, localização, faturamento, folha, período) **para** que ela possa ser analisada.
+**Como** contador, **quero** registar os dados tributários de uma empresa (regime, CNAE, localização, faturamento, folha, período, se a atividade está sujeita ao Fator R) **para** que ela possa ser analisada.
 
 - [ ] Valores monetários não aceitam negativos.
 - [ ] Campos em falta ficam marcados como ausentes (valor nulo, distinto de zero); o sistema não inventa valores (decisão D20).
 - [ ] `ADMIN` e `ANALYST` preenchem e editam; `VIEWER` só consulta (decisão D20).
+- [ ] O contador indica se a atividade está sujeita ao Fator R (sim, não ou não informado), com a ajuda dos §§ 5º-I e 5º-M; não informado não vira "sim" (decisão D33).
 - [ ] Alterações ficam no registo de auditoria (a partir da semana 6, quando o `AuditLog` existir; regra S14).
 
 ## Tax Engine
@@ -121,7 +122,7 @@ Acrescentar colegas ao escritório é a US17 (decisão D22).
 **Como** contador, **quero** executar a análise do Fator R do Simples Nacional **para** saber se a empresa se enquadra no Anexo III ou V e qual a alíquota efetiva.
 
 - [ ] Usa a versão da regra publicada e vigente no mês de referência (parâmetros na [§3.4.1](arquitetura-e-decisoes.md#341-parâmetros-da-versão-1-d28)).
-- [ ] Sem dados obrigatórios, a análise fica `INCOMPLETE` e lista o que falta; fora do Simples Nacional responde 422 e nada é gravado (decisão D31).
+- [ ] Sem dados obrigatórios, a análise fica `INCOMPLETE` e lista o que falta; fora do Simples Nacional ou com atividade não sujeita ao Fator R responde 422 e nada é gravado (decisões D31 e D33).
 - [ ] A análise guarda snapshot da entrada, versão da regra, checksum e trace; é imutável.
 - [ ] Reexecutar com a mesma entrada e versão produz resultado idêntico (teste de replay).
 - [ ] `ADMIN` e `ANALYST` executam; `VIEWER` consulta e recebe 403 ao executar (decisão D27).
