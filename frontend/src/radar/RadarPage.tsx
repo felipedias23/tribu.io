@@ -5,6 +5,10 @@ import { useDocumentTitle } from '../shared/hooks/useDocumentTitle';
 import { getRadarSummary, listRadar, RADAR_STATUSES, type RadarItem, type RadarStatus, radarKeys } from './api';
 import { fractionToPercent, STATUS_LABELS } from './format';
 import styles from './Radar.module.css';
+import { RadarStatusBadge } from './RadarStatusBadge';
+
+const dateFormat = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' });
+const formatDate = (value: string) => dateFormat.format(new Date(value));
 
 function parseStatus(value: string | null): RadarStatus | null {
   return RADAR_STATUSES.find((status) => status === value) ?? null;
@@ -116,9 +120,7 @@ export function RadarPage() {
                     <span className={styles.cnpj}>{formatCnpj(item.company.cnpj)}</span>
                   </td>
                   <td data-label="Estado">
-                    <span className={styles.badge} data-status={item.status}>
-                      {STATUS_LABELS[item.status]}
-                    </span>
+                    <RadarStatusBadge status={item.status} />
                   </td>
                   <td data-label="Motivo">
                     <ul className={styles.reasons}>
@@ -129,6 +131,11 @@ export function RadarPage() {
                   </td>
                   <td data-label="Cálculo">
                     <Result item={item} />
+                    {item.lastAnalysis && (
+                      <Link to={`/analyses/${item.lastAnalysis.id}`} className={styles.analysisLink}>
+                        Última análise ({formatDate(item.lastAnalysis.executedAt)})
+                      </Link>
+                    )}
                   </td>
                 </tr>
               ))}

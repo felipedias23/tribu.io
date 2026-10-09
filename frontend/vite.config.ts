@@ -16,6 +16,9 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // Datas e horas mostradas no fuso do browser: os testes fixam o de Brasília,
+    // para darem o mesmo resultado em qualquer máquina (CI em UTC).
+    env: { TZ: 'America/Sao_Paulo' },
     css: { modules: { classNameStrategy: 'non-scoped' } },
     restoreMocks: true,
     unstubGlobals: true,
