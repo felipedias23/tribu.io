@@ -82,6 +82,15 @@ const COMPANY_NAMES: Record<'A' | 'B', [string, string | null][]> = {
     ['Padaria Imaginária Ltda', 'Pão Imaginário'],
     ['Consultoria Demonstração Ltda', null],
     ['Transportes Ilustrativos Ltda', 'TransIlustra'],
+    ['Gráfica Ilustrativa Ltda', null],
+    ['Farmácia Modelo Ltda', 'Farma Modelo'],
+    ['Livraria Exemplo Ltda', null],
+    ['Academia Demonstrativa Ltda', 'Academia Demo'],
+    ['Agência Fictícia de Viagens Ltda', null],
+    ['Bicicletaria Imaginária Ltda', null],
+    ['Engenharia Parceira Exemplo Ltda', null],
+    ['Pet Shop Inventado Ltda', 'PetInventado'],
+    ['Floricultura Hipotética Ltda', null],
   ],
   B: [
     ['Laboratório Hipotético Ltda', 'LabHipo'],
@@ -90,6 +99,15 @@ const COMPANY_NAMES: Record<'A' | 'B', [string, string | null][]> = {
     ['Arquitetura Exemplar Ltda', 'Exemplar Arquitetura'],
     ['Software Fictício Ltda', 'FicSoft'],
     ['Restaurante Demonstrativo Ltda', null],
+    ['Construtora Simulada Ltda', null],
+    ['Clínica Veterinária Fictícia Ltda', 'VetFicção'],
+    ['Estúdio de Fotografia Exemplar Ltda', null],
+    ['Escola de Idiomas Demonstrativa Ltda', null],
+    ['Agência Digital Modelo Ltda', 'Modelo Digital'],
+    ['Lavanderia Ilustrativa Ltda', null],
+    ['Consultório Odontológico Imaginário Ltda', null],
+    ['Gráfica Hipotética Ltda', null],
+    ['Padaria Inventada Ltda', null],
   ],
 };
 
@@ -131,8 +149,9 @@ const { SIMPLES_NACIONAL, LUCRO_PRESUMIDO, LUCRO_REAL } = TaxRegime;
 
 /**
  * Perfis tributários fictícios (US08), pela posição da empresa em
- * COMPANY_NAMES. Há perfis completos, perfis com dados ausentes (null) e
- * empresas sem perfil, para a demonstração e o Tax Radar.
+ * COMPANY_NAMES. Cada escritório demonstra os 5 estados do Tax Radar (§3.5);
+ * o comentário de cada linha indica o estado em 2026-10. Os meses são fixos,
+ * por isso os exemplos de dados desatualizados dependem da data atual.
  */
 // prettier-ignore
 const TAX_PROFILES: Record<'A' | 'B', (SeedTaxProfile | null)[]> = {
@@ -143,6 +162,24 @@ const TAX_PROFILES: Record<'A' | 'B', (SeedTaxProfile | null)[]> = {
     { taxRegime: LUCRO_PRESUMIDO, cnae: '1091102', city: 'Belo Horizonte', state: 'MG', revenue12m: '5200000.00', payroll12m: '900000.00', referencePeriod: '2026-09' },
     null,
     { taxRegime: LUCRO_REAL, cnae: '4930202', city: 'Curitiba', state: 'PR', revenue12m: '48000000.00', payroll12m: '7500000.00', referencePeriod: '2026-09' },
+    // REQUER_ANALISE: RBT12 acima do limite do Simples
+    { taxRegime: SIMPLES_NACIONAL, cnae: '1813001', city: 'Guarulhos', state: 'SP', revenue12m: '5200000.00', payroll12m: '1300000.00', referencePeriod: '2026-09' },
+    // REQUER_ANALISE: folha maior que o RBT12
+    { taxRegime: SIMPLES_NACIONAL, cnae: '4771701', city: 'Sorocaba', state: 'SP', revenue12m: '900000.00', payroll12m: '950000.00', referencePeriod: '2026-09' },
+    // REQUER_ANALISE: dados de 2025-06
+    { taxRegime: SIMPLES_NACIONAL, cnae: '4761001', city: 'Ribeirão Preto', state: 'SP', revenue12m: '600000.00', payroll12m: '200000.00', referencePeriod: '2025-06' },
+    // REVISAR_REGRA: mês anterior à vigência da versão 1 (2018-01)
+    { taxRegime: SIMPLES_NACIONAL, cnae: '9313100', city: 'Niterói', state: 'RJ', revenue12m: '750000.00', payroll12m: '180000.00', referencePeriod: '2017-06' },
+    // OPORTUNIDADE_PARA_AVALIAR: Fator R de 27%
+    { taxRegime: SIMPLES_NACIONAL, cnae: '7911200', city: 'Rio de Janeiro', state: 'RJ', revenue12m: '1500000.00', payroll12m: '405000.00', referencePeriod: '2026-09' },
+    // NORMAL: Fator R de 10%, Anexo V
+    { taxRegime: SIMPLES_NACIONAL, cnae: '9529106', city: 'Londrina', state: 'PR', revenue12m: '300000.00', payroll12m: '30000.00', referencePeriod: '2026-09' },
+    // NORMAL: Fator R de 40%, Anexo III
+    { taxRegime: SIMPLES_NACIONAL, cnae: '7112000', city: 'Goiânia', state: 'GO', revenue12m: '2000000.00', payroll12m: '800000.00', referencePeriod: '2026-09' },
+    // REQUER_ANALISE: sem receita nos 12 meses (início de atividade)
+    { taxRegime: SIMPLES_NACIONAL, cnae: '9609208', city: 'Brasília', state: 'DF', revenue12m: '0.00', payroll12m: '0.00', referencePeriod: '2026-09' },
+    // DADOS_INCOMPLETOS: sem mês de referência
+    { taxRegime: SIMPLES_NACIONAL, cnae: '4789001', city: 'Vitória', state: 'ES', revenue12m: '420000.00', payroll12m: '130000.00', referencePeriod: null },
   ],
   B: [
     { taxRegime: SIMPLES_NACIONAL, cnae: '7120100', city: 'Porto Alegre', state: 'RS', revenue12m: '1800000.00', payroll12m: '540000.00', referencePeriod: '2026-09' },
@@ -151,6 +188,24 @@ const TAX_PROFILES: Record<'A' | 'B', (SeedTaxProfile | null)[]> = {
     { taxRegime: SIMPLES_NACIONAL, cnae: '7111100', city: 'Recife', state: 'PE', revenue12m: '960000.00', payroll12m: '250000.00', referencePeriod: '2026-09' },
     { taxRegime: SIMPLES_NACIONAL, cnae: '6201501', city: 'Recife', state: 'PE', revenue12m: '3100000.00', payroll12m: '1085000.00', referencePeriod: '2026-09' },
     { taxRegime: LUCRO_PRESUMIDO, cnae: '5611201', city: 'Salvador', state: 'BA', revenue12m: '2700000.00', payroll12m: '650000.00', referencePeriod: null },
+    // REQUER_ANALISE: RBT12 acima do limite do Simples
+    { taxRegime: SIMPLES_NACIONAL, cnae: '4120400', city: 'Fortaleza', state: 'CE', revenue12m: '4900000.00', payroll12m: '1600000.00', referencePeriod: '2026-09' },
+    // REQUER_ANALISE: sem receita nos 12 meses (início de atividade)
+    { taxRegime: SIMPLES_NACIONAL, cnae: '7500100', city: 'Natal', state: 'RN', revenue12m: '0.00', payroll12m: '0.00', referencePeriod: '2026-09' },
+    // REVISAR_REGRA: mês anterior à vigência da versão 1 (2018-01)
+    { taxRegime: SIMPLES_NACIONAL, cnae: '7420001', city: 'João Pessoa', state: 'PB', revenue12m: '400000.00', payroll12m: '120000.00', referencePeriod: '2017-01' },
+    // NORMAL: Fator R de 13%, Anexo V
+    { taxRegime: SIMPLES_NACIONAL, cnae: '8593700', city: 'Maceió', state: 'AL', revenue12m: '700000.00', payroll12m: '91000.00', referencePeriod: '2026-09' },
+    // OPORTUNIDADE_PARA_AVALIAR: Fator R de 29%
+    { taxRegime: SIMPLES_NACIONAL, cnae: '7319002', city: 'Aracaju', state: 'SE', revenue12m: '1100000.00', payroll12m: '319000.00', referencePeriod: '2026-09' },
+    // REQUER_ANALISE: dados de 2025-03
+    { taxRegime: SIMPLES_NACIONAL, cnae: '9601701', city: 'Teresina', state: 'PI', revenue12m: '250000.00', payroll12m: '60000.00', referencePeriod: '2025-03' },
+    // NORMAL: Fator R de 35%, Anexo III
+    { taxRegime: SIMPLES_NACIONAL, cnae: '8630504', city: 'São Luís', state: 'MA', revenue12m: '1600000.00', payroll12m: '560000.00', referencePeriod: '2026-09' },
+    // NORMAL: Lucro Real, fora do âmbito da regra
+    { taxRegime: LUCRO_REAL, cnae: '1813001', city: 'Belém', state: 'PA', revenue12m: '9000000.00', payroll12m: '2100000.00', referencePeriod: '2026-09' },
+    // DADOS_INCOMPLETOS: sem regime tributário
+    { taxRegime: null, cnae: '1091102', city: 'Manaus', state: 'AM', revenue12m: '380000.00', payroll12m: '95000.00', referencePeriod: '2026-09' },
   ],
 };
 

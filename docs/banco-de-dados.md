@@ -175,7 +175,7 @@ Todas usam a password definida em `SEED_PASSWORD` no `.env`. Os emails usam o do
 | Beta Contabilidade | `analista@beta.tribu.example` | `ANALYST` |
 | Beta Contabilidade | `consulta@beta.tribu.example` | `VIEWER` |
 
-Cada escritório tem também seis empresas fictícias. Os CNPJs têm raiz alfanumérica começada por `TRIBU` (ex.: `TRIBUA000001` + dígitos verificadores), para não coincidirem com empresas reais. Cinco delas têm perfil tributário: alguns completos e outros com dados ausentes (sem folha, sem faturamento, sem período), e uma empresa por escritório fica sem perfil.
+Cada escritório tem também 15 empresas fictícias (30 no total). Os CNPJs têm raiz alfanumérica começada por `TRIBU` (ex.: `TRIBUA000001` + dígitos verificadores), para não coincidirem com empresas reais. Os perfis tributários foram escolhidos para que **cada escritório demonstre os 5 estados do Tax Radar** (§3.5): dados em falta e empresas sem perfil, mês anterior à vigência da regra, RBT12 acima do limite ou zero, folha maior que a receita, dados antigos, Fator R perto do limiar e casos normais nos Anexos III e V e fora do Simples. Um teste unitário do seed verifica essa cobertura. Os meses de referência são fixos (a maioria `2026-09`), por isso, com o passar do tempo, mais empresas passam a `REQUER_ANALISE` por dados desatualizados.
 
 A password só é aplicada quando a conta é **criada**. Mudar `SEED_PASSWORD` depois não altera contas existentes; para isso, recrie o banco.
 
