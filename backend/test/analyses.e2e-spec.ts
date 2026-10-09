@@ -15,7 +15,7 @@ import {
 } from './support/tenants';
 
 const V1_ID = 'f0000000-0000-4000-8000-000000000101';
-const RULE_ID = 'f0000000-0000-4000-8000-000000000001';
+const V2_ID = 'f0000000-0000-4000-8000-000000000102';
 
 /** Mês AAAA-MM a `offset` meses do atual (UTC). */
 function month(offset: number): string {
@@ -27,6 +27,7 @@ function month(offset: number): string {
 
 interface Profile {
   taxRegime?: TaxRegime | null;
+  fatorRSubject?: boolean | null;
   revenue12m?: string | null;
   payroll12m?: string | null;
   referencePeriod?: string | null;
@@ -56,6 +57,7 @@ describe('Análises (e2e)', () => {
           cnae: '6201501',
           revenue12m: '1000000.00',
           payroll12m: '400000.00',
+          fatorRSubject: true,
           ...data,
           referencePeriod: referencePeriod
             ? new Date(`${referencePeriod}-01T00:00:00.000Z`)
@@ -85,21 +87,21 @@ describe('Análises (e2e)', () => {
 
       const { body } = await execute(a.analyst, companyId).expect(201);
 
-      const v1 = await prisma.taxRuleVersion.findUniqueOrThrow({
-        where: { id: V1_ID },
+      const v2 = await prisma.taxRuleVersion.findUniqueOrThrow({
+        where: { id: V2_ID },
       });
       expect(body).toMatchObject({
         companyId,
         status: 'COMPLETED',
         radarStatus: 'NORMAL',
-        engineVersion: '1.0.0',
-        parametersChecksum: v1.checksum,
+        engineVersion: '1.1.0',
+        parametersChecksum: v2.checksum,
         executedBy: { id: a.analyst.id },
         ruleVersion: {
-          id: V1_ID,
+          id: V2_ID,
           ruleCode: 'SIMPLES_FATOR_R',
-          version: 1,
-          evaluatorKey: 'SIMPLES_FATOR_R@1',
+          version: 2,
+          evaluatorKey: 'SIMPLES_FATOR_R@2',
           validFrom: '2018-01-01',
           validUntil: null,
         },
@@ -109,6 +111,7 @@ describe('Análises (e2e)', () => {
           revenue12m: '1000000.00',
           payroll12m: '400000.00',
           referencePeriod: period,
+          fatorRSubject: true,
         },
         result: {
           fatorR: '0.4',
@@ -122,8 +125,16 @@ describe('Análises (e2e)', () => {
       expect(body.ruleVersion.source).toContain('LC 123/2006');
       expect(
         (body.trace.steps as { code: string }[]).map((s) => s.code),
-      ).toEqual(['FATOR_R', 'ANEXO', 'FAIXA', 'ALIQUOTA_EFETIVA']);
-      expect(body.trace.assumptions).toHaveLength(2);
+      ).toEqual([
+        'ELEGIBILIDADE',
+        'FATOR_R',
+        'ANEXO',
+        'FAIXA',
+        'ALIQUOTA_EFETIVA',
+      ]);
+      expect(
+        (body.trace.assumptions as { code: string }[]).map((a) => a.code),
+      ).toEqual(['PERIODO_12_MESES']);
       expect(body.trace.missing).toEqual([]);
       expect(body.trace.reasons).toEqual([
         expect.objectContaining({ code: 'FATOR_R_OK' }),
@@ -156,6 +167,7 @@ describe('Análises (e2e)', () => {
         'revenue12m',
         'payroll12m',
         'referencePeriod',
+        'fatorRSubject',
       ]);
     });
 
@@ -166,7 +178,7 @@ describe('Análises (e2e)', () => {
 
       expect(body).toMatchObject({
         status: 'INCOMPLETE',
-        ruleVersion: { id: V1_ID },
+        ruleVersion: { id: V2_ID },
         result: null,
         trace: { outcome: { status: 'INCOMPLETE' }, missing: ['payroll12m'] },
       });
@@ -204,6 +216,32 @@ describe('Análises (e2e)', () => {
       });
     });
 
+    it('atividade não sujeita ao Fator R: 422 e nada é gravado (D33)', async () => {
+      const companyId = await company({ fatorRSubject: false });
+
+      const { body } = await execute(a.analyst, companyId).expect(422);
+
+      expect(body.message).toBe(
+        'A atividade não está sujeita ao Fator R, como indicado no perfil tributário.',
+      );
+      expect(await prisma.analysis.count({ where: { companyId } })).toBe(0);
+    });
+
+    it('elegibilidade não confirmada: INCOMPLETE, sem cálculo (D33)', async () => {
+      const companyId = await company({ fatorRSubject: null });
+
+      const { body } = await execute(a.analyst, companyId).expect(201);
+
+      expect(body).toMatchObject({
+        status: 'INCOMPLETE',
+        radarStatus: 'DADOS_INCOMPLETOS',
+        ruleVersion: { id: V2_ID },
+        result: null,
+        input: { fatorRSubject: null },
+        trace: { missing: ['fatorRSubject'], steps: [] },
+      });
+    });
+
     it('fora do Simples Nacional: 422 e nada é gravado (D31)', async () => {
       const companyId = await company({
         taxRegime: TaxRegime.LUCRO_PRESUMIDO,
@@ -237,6 +275,7 @@ describe('Análises (e2e)', () => {
           revenue12m: '1000000.00',
           payroll12m: '100000.00',
           referencePeriod: month(-1),
+          fatorRSubject: true,
         })
         .expect(200);
       const second = await execute(a.analyst, companyId).expect(201);
@@ -487,53 +526,38 @@ describe('Análises (e2e)', () => {
       });
     });
 
-    it('última análise feita com outra versão: REVISAR_REGRA', async () => {
+    it('análise feita com a versão 1, substituída pela 2: REVISAR_REGRA (D33)', async () => {
       const companyId = await company();
-      // Versão em rascunho: pode ser apagada no fim do teste.
-      const parameters = { threshold: '0.28' };
-      const draft = await prisma.taxRuleVersion.create({
+      const v1 = await prisma.taxRuleVersion.findUniqueOrThrow({
+        where: { id: V1_ID },
+      });
+      expect(v1.status).toBe('SUPERSEDED');
+      // Uma análise anterior à D33, como as que existiam antes da migration.
+      await prisma.analysis.create({
         data: {
-          taxRuleId: RULE_ID,
-          version: 99,
-          validFrom: new Date('2018-01-01'),
-          parameters,
-          source: 'Versão de teste',
-          evaluatorKey: 'SIMPLES_FATOR_R@1',
-          status: 'DRAFT',
-          checksum: parametersChecksum(parameters),
+          accountingFirmId: a.firmId,
+          companyId,
+          executedById: a.analyst.id,
+          taxRuleVersionId: V1_ID,
+          parametersChecksum: v1.checksum,
+          engineVersion: '1.0.0',
+          inputSnapshot: {},
+          status: 'COMPLETED',
+          radarStatus: 'NORMAL',
+          result: {},
+          trace: {},
         },
       });
-      try {
-        await prisma.analysis.create({
-          data: {
-            accountingFirmId: a.firmId,
-            companyId,
-            executedById: a.analyst.id,
-            taxRuleVersionId: draft.id,
-            parametersChecksum: draft.checksum,
-            engineVersion: '1.0.0',
-            inputSnapshot: {},
-            status: 'INCOMPLETE',
-            radarStatus: 'NORMAL',
-            trace: {},
-          },
-        });
 
-        const item = await radarItem(companyId);
-        expect(item?.status).toBe('REVISAR_REGRA');
-        expect(item?.reasons).toEqual([
-          expect.objectContaining({ code: 'ANALYSIS_RULE_OUTDATED' }),
-        ]);
+      const item = await radarItem(companyId);
+      expect(item?.status).toBe('REVISAR_REGRA');
+      expect(item?.reasons).toEqual([
+        expect.objectContaining({ code: 'ANALYSIS_RULE_OUTDATED' }),
+      ]);
 
-        // Uma análise nova, com a versão vigente, resolve o sinal.
-        await execute(a.analyst, companyId).expect(201);
-        expect((await radarItem(companyId))?.status).toBe('NORMAL');
-      } finally {
-        await prisma.analysis.deleteMany({
-          where: { taxRuleVersionId: draft.id },
-        });
-        await prisma.taxRuleVersion.delete({ where: { id: draft.id } });
-      }
+      // Uma análise nova, com a versão vigente, resolve o sinal.
+      await execute(a.analyst, companyId).expect(201);
+      expect((await radarItem(companyId))?.status).toBe('NORMAL');
     });
   });
 });

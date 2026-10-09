@@ -1,6 +1,6 @@
 import { classify, RADAR_STATUSES } from '../radar/radar-classifier';
 import { selectVersion } from '../tax-calculations/rule-version-selection';
-import { FATOR_R_V1_VERSION } from '../tax-calculations/simples-fator-r-v1.fixture';
+import { FATOR_R_V2_VERSION } from '../tax-calculations/simples-fator-r-v1.fixture';
 import {
   SEED_COMPANIES,
   SEED_FIRMS,
@@ -29,7 +29,7 @@ describe('validateSeedEnv', () => {
 
 describe('dados do seed', () => {
   const v1 = {
-    ...FATOR_R_V1_VERSION,
+    ...FATOR_R_V2_VERSION,
     status: 'PUBLISHED' as const,
     validFrom: new Date('2018-01-01'),
     validUntil: null,
@@ -50,6 +50,7 @@ describe('dados do seed', () => {
           payroll12m: profile.payroll12m,
           referencePeriod:
             profile.referencePeriod?.toISOString().slice(0, 7) ?? null,
+          fatorRSubject: profile.fatorRSubject,
         };
         return classify({
           profile: input ?? null,
@@ -69,5 +70,20 @@ describe('dados do seed', () => {
     expect(SEED_COMPANIES).toHaveLength(30);
     expect(new Set(SEED_COMPANIES.map((c) => c.cnpj)).size).toBe(30);
     expect(new Set(SEED_COMPANIES.map((c) => c.id)).size).toBe(30);
+  });
+});
+
+describe('elegibilidade ao Fator R no seed (D33)', () => {
+  it('cada escritório tem empresas com "sim", "não" e "não informado"', () => {
+    for (const firm of SEED_FIRMS) {
+      const values = new Set(
+        SEED_TAX_PROFILES.filter(
+          (p) =>
+            p.accountingFirmId === firm.id &&
+            p.taxRegime === 'SIMPLES_NACIONAL',
+        ).map((p) => p.fatorRSubject),
+      );
+      expect(values).toEqual(new Set([true, false, null]));
+    }
   });
 });

@@ -11,7 +11,7 @@ import {
   type Tenant,
 } from './support/tenants';
 
-const V1_ID = 'f0000000-0000-4000-8000-000000000101';
+const V2_ID = 'f0000000-0000-4000-8000-000000000102';
 
 /** Mês AAAA-MM a `offset` meses do atual (UTC). */
 function month(offset: number): string {
@@ -23,6 +23,7 @@ function month(offset: number): string {
 
 interface Profile {
   taxRegime?: TaxRegime | null;
+  fatorRSubject?: boolean | null;
   revenue12m?: string | null;
   payroll12m?: string | null;
   referencePeriod?: string | null;
@@ -56,6 +57,7 @@ describe('Tax Radar (e2e)', () => {
         taxRegime: TaxRegime.SIMPLES_NACIONAL,
         revenue12m: '1000000.00',
         payroll12m: '400000.00',
+        fatorRSubject: true,
         ...data,
         referencePeriod: referencePeriod
           ? new Date(`${referencePeriod}-01T00:00:00.000Z`)
@@ -156,9 +158,9 @@ describe('Tax Radar (e2e)', () => {
       },
       reasons: [{ code: 'FATOR_R_OK' }],
       ruleVersion: {
-        id: V1_ID,
-        version: 1,
-        evaluatorKey: 'SIMPLES_FATOR_R@1',
+        id: V2_ID,
+        version: 2,
+        evaluatorKey: 'SIMPLES_FATOR_R@2',
       },
       result: {
         fatorR: '0.4',
@@ -268,6 +270,59 @@ describe('Tax Radar (e2e)', () => {
     });
   });
 
+  it('elegibilidade ao Fator R: não sujeita é NORMAL; por confirmar faltam dados (D33)', async () => {
+    const c = await createTenant(app, prisma, 'Radar Elegibilidade');
+    try {
+      const sujeita = await createCompany(prisma, c.firmId, 'Não Sujeita');
+      const porConfirmar = await createCompany(
+        prisma,
+        c.firmId,
+        'Por Confirmar',
+      );
+      for (const [companyId, fatorRSubject] of [
+        [sujeita.id, false],
+        [porConfirmar.id, null],
+      ] as const) {
+        await prisma.taxProfile.create({
+          data: {
+            accountingFirmId: c.firmId,
+            companyId,
+            taxRegime: TaxRegime.SIMPLES_NACIONAL,
+            revenue12m: '1000000.00',
+            payroll12m: '270000.00',
+            referencePeriod: new Date(`${month(-1)}-01T00:00:00.000Z`),
+            fatorRSubject,
+          },
+        });
+      }
+
+      const { body } = await radar(c.viewer).expect(200);
+      const items = body.items as {
+        company: { id: string };
+        status: string;
+        reasons: { code: string; message: string }[];
+      }[];
+      const find = (id: string) => items.find((i) => i.company.id === id);
+
+      expect(find(sujeita.id)).toMatchObject({
+        status: 'NORMAL',
+        reasons: [{ code: 'ACTIVITY_NOT_SUBJECT' }],
+      });
+      expect(find(porConfirmar.id)).toMatchObject({
+        status: 'DADOS_INCOMPLETOS',
+        reasons: [
+          {
+            code: 'MISSING_DATA',
+            message:
+              'Faltam dados para o cálculo: confirmação de que a atividade está sujeita ao Fator R.',
+          },
+        ],
+      });
+    } finally {
+      await deleteTenants(prisma, [c]);
+    }
+  });
+
   it('o estado acompanha o perfil atual, sem nada gravado (D26)', async () => {
     const before = await radar(a.admin, '?status=OPORTUNIDADE_PARA_AVALIAR');
     expect(before.body.total).toBe(1);
@@ -280,6 +335,7 @@ describe('Tax Radar (e2e)', () => {
         revenue12m: '1000000.00',
         payroll12m: '450000.00',
         referencePeriod: month(-1),
+        fatorRSubject: true,
       })
       .expect(200);
 

@@ -12,7 +12,7 @@ import { classify } from '../radar/radar-classifier';
 import {
   ENGINE_VERSION,
   type FatorRInput,
-  missingFields,
+  missingFieldsForFatorR,
 } from '../tax-calculations/evaluation';
 import { evaluate } from '../tax-calculations/evaluators';
 import {
@@ -69,6 +69,7 @@ const EMPTY_INPUT: FatorRInput = {
   revenue12m: null,
   payroll12m: null,
   referencePeriod: null,
+  fatorRSubject: null,
 };
 
 const NOT_FOUND = 'Análise não encontrada.';
@@ -113,7 +114,8 @@ function toDetail(row: DetailRow): AnalysisResponse {
  * Análises do Fator R (US09). Cada execução grava um registo imutável com a
  * entrada, a versão da regra, o checksum e o raciocínio (§3.4). Uma análise
  * que não chega a calcular fica INCOMPLETE com o motivo; fora do Simples
- * Nacional a regra não se aplica e nada é gravado (D31).
+ * Nacional ou com a atividade não sujeita ao Fator R, a regra não se aplica
+ * e nada é gravado (D31, D33).
  */
 @Injectable()
 export class AnalysesService {
@@ -141,6 +143,11 @@ export class AnalysesService {
     ) {
       throw new UnprocessableEntityException(
         'O Fator R só se aplica ao Simples Nacional; a empresa está noutro regime.',
+      );
+    }
+    if (profile?.fatorRSubject === false) {
+      throw new UnprocessableEntityException(
+        'A atividade não está sujeita ao Fator R, como indicado no perfil tributário.',
       );
     }
 
@@ -173,7 +180,7 @@ export class AnalysesService {
       missing:
         outcome?.status === 'INCOMPLETE'
           ? outcome.missing
-          : missingFields(input),
+          : missingFieldsForFatorR(input),
       assumptions: outcome?.assumptions ?? [],
       reasons: signal.reasons,
     };

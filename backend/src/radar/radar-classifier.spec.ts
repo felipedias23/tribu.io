@@ -1,5 +1,5 @@
 import type { FatorRInput } from '../tax-calculations/evaluation';
-import { FATOR_R_V1_VERSION } from '../tax-calculations/simples-fator-r-v1.fixture';
+import { FATOR_R_V2_VERSION } from '../tax-calculations/simples-fator-r-v1.fixture';
 import { classify, type RadarInput } from './radar-classifier';
 
 function profile(data: Partial<FatorRInput> = {}): FatorRInput {
@@ -9,6 +9,7 @@ function profile(data: Partial<FatorRInput> = {}): FatorRInput {
     revenue12m: '1000000.00',
     payroll12m: '400000.00',
     referencePeriod: '2026-09',
+    fatorRSubject: true,
     ...data,
   };
 }
@@ -19,7 +20,7 @@ function radar(
 ) {
   return classify({
     profile: data === null ? null : profile(data),
-    ruleVersion: FATOR_R_V1_VERSION,
+    ruleVersion: FATOR_R_V2_VERSION,
     lastAnalysisRuleVersionId: null,
     currentPeriod: '2026-10',
     ...extra,
@@ -67,6 +68,36 @@ describe('Classificador do Tax Radar (§3.5, D29, D30)', () => {
     });
   });
 
+  describe('elegibilidade ao Fator R (D33)', () => {
+    it('sem confirmação, faltam dados', () => {
+      const signal = radar({ fatorRSubject: null });
+
+      expect(signal.status).toBe('DADOS_INCOMPLETOS');
+      expect(signal.reasons[0].message).toBe(
+        'Faltam dados para o cálculo: confirmação de que a atividade está sujeita ao Fator R.',
+      );
+    });
+
+    it('a confirmação junta-se aos outros dados em falta', () => {
+      expect(
+        radar({ fatorRSubject: null, payroll12m: null }).reasons[0].message,
+      ).toBe(
+        'Faltam dados para o cálculo: folha dos 12 meses, confirmação de que a atividade está sujeita ao Fator R.',
+      );
+    });
+
+    it('atividade não sujeita: NORMAL, mesmo com dados em falta', () => {
+      const signal = radar({ fatorRSubject: false, payroll12m: null });
+
+      expect(signal).toMatchObject({
+        status: 'NORMAL',
+        priorityScore: 0,
+        evaluation: null,
+      });
+      expect(codes(signal)).toEqual(['ACTIVITY_NOT_SUBJECT']);
+    });
+  });
+
   describe('fora do Simples Nacional', () => {
     it('é NORMAL, com o motivo, mesmo com dados em falta', () => {
       for (const taxRegime of ['LUCRO_PRESUMIDO', 'LUCRO_REAL'] as const) {
@@ -103,15 +134,15 @@ describe('Classificador do Tax Radar (§3.5, D29, D30)', () => {
       expect(codes(signal)).toEqual(['ANALYSIS_RULE_OUTDATED']);
       expect(signal.evaluation?.status).toBe('COMPLETED');
       expect(signal.ruleVersion).toEqual({
-        id: FATOR_R_V1_VERSION.id,
-        version: 1,
-        evaluatorKey: 'SIMPLES_FATOR_R@1',
+        id: FATOR_R_V2_VERSION.id,
+        version: 2,
+        evaluatorKey: 'SIMPLES_FATOR_R@2',
       });
     });
 
     it('a última análise com a versão vigente não é sinal', () => {
       expect(
-        radar({}, { lastAnalysisRuleVersionId: FATOR_R_V1_VERSION.id }).status,
+        radar({}, { lastAnalysisRuleVersionId: FATOR_R_V2_VERSION.id }).status,
       ).toBe('NORMAL');
     });
 

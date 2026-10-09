@@ -4,7 +4,7 @@ import {
   type FatorROutcome,
   formatPercent,
   formatPoints,
-  missingFields,
+  missingFieldsForFatorR,
   type RequiredField,
 } from '../tax-calculations/evaluation';
 import { evaluate } from '../tax-calculations/evaluators';
@@ -68,6 +68,7 @@ const FIELD_LABELS: Record<RequiredField, string> = {
   revenue12m: 'receita bruta dos 12 meses (RBT12)',
   payroll12m: 'folha dos 12 meses',
   referencePeriod: 'mês de referência',
+  fatorRSubject: 'confirmação de que a atividade está sujeita ao Fator R',
 };
 
 /** Meses desde o ano 0, para comparar meses AAAA-MM. */
@@ -148,7 +149,20 @@ export function classify(input: RadarInput): RadarSignal {
       input,
     );
   }
-  const missing = missingFields(profile);
+  if (profile.fatorRSubject === false) {
+    return signal(
+      'NORMAL',
+      [
+        {
+          code: 'ACTIVITY_NOT_SUBJECT',
+          message:
+            'A atividade não está sujeita ao Fator R, como indicado no perfil tributário.',
+        },
+      ],
+      input,
+    );
+  }
+  const missing = missingFieldsForFatorR(profile);
   if (missing.length > 0) {
     return signal(
       'DADOS_INCOMPLETOS',

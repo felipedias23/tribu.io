@@ -14,6 +14,7 @@ import { createTestPrisma } from './support/prisma';
 
 const { DRAFT, PUBLISHED, SUPERSEDED } = TaxRuleVersionStatus;
 const V1_ID = 'f0000000-0000-4000-8000-000000000101';
+const V2_ID = 'f0000000-0000-4000-8000-000000000102';
 
 /** Tabela da §3.4.1 (LC 123/2006, Anexos III e V): [até, alíquota, parcela]. */
 // prettier-ignore
@@ -83,22 +84,42 @@ describe('Regras tributárias (e2e)', () => {
     };
   }
 
-  describe('versão 1 do Fator R (migration)', () => {
-    it('está publicada, em vigor desde 2018 e sem fim', async () => {
+  describe('versões do Fator R (migrations)', () => {
+    it('a versão 1 está substituída pela 2 (D33), ambas em vigor desde 2018', async () => {
       const rule = await prisma.taxRule.findUniqueOrThrow({
         where: { code: SIMPLES_FATOR_R_CODE },
-        include: { versions: true },
+        include: { versions: { orderBy: { version: 'asc' } } },
       });
 
-      expect(rule.versions).toHaveLength(1);
+      expect(rule.versions).toHaveLength(2);
       expect(rule.versions[0]).toMatchObject({
         id: V1_ID,
         version: 1,
-        status: PUBLISHED,
+        status: SUPERSEDED,
         evaluatorKey: SIMPLES_FATOR_R_EVALUATOR,
         validFrom: new Date('2018-01-01'),
         validUntil: null,
       });
+      expect(rule.versions[1]).toMatchObject({
+        id: V2_ID,
+        version: 2,
+        status: PUBLISHED,
+        evaluatorKey: 'SIMPLES_FATOR_R@2',
+        validFrom: new Date('2018-01-01'),
+        validUntil: null,
+      });
+      expect(rule.versions[1].source).toContain('5º-I');
+    });
+
+    it('a versão 2 tem os mesmos parâmetros e o mesmo checksum da 1', async () => {
+      const [v1, v2] = await Promise.all(
+        [V1_ID, V2_ID].map((id) =>
+          prisma.taxRuleVersion.findUniqueOrThrow({ where: { id } }),
+        ),
+      );
+
+      expect(v2.parameters).toEqual(v1.parameters);
+      expect(v2.checksum).toBe(v1.checksum);
     });
 
     it('tem parâmetros válidos, iguais à tabela da lei, com o checksum certo', async () => {
@@ -258,13 +279,13 @@ describe('Regras tributárias (e2e)', () => {
       ['o checksum', { checksum: '0'.repeat(64) }],
       ['o início da vigência', { validFrom: new Date('2019-01-01') }],
       ['a fonte', { source: 'Outra fonte' }],
-      ['o evaluator', { evaluatorKey: 'SIMPLES_FATOR_R@2' }],
+      ['o evaluator', { evaluatorKey: 'SIMPLES_FATOR_R@9' }],
       ['o número da versão', { version: 9 }],
       ['o estado para rascunho', { status: DRAFT }],
-    ])('recusa alterar %s da versão 1', async (_case, data) => {
+    ])('recusa alterar %s da versão 2', async (_case, data) => {
       await inRollback(async (tx) => {
         await expect(
-          tx.taxRuleVersion.update({ where: { id: V1_ID }, data }),
+          tx.taxRuleVersion.update({ where: { id: V2_ID }, data }),
         ).rejects.toThrow(IMMUTABLE);
       });
     });
@@ -272,11 +293,11 @@ describe('Regras tributárias (e2e)', () => {
     it('aceita fechar a vigência e marcar como substituída', async () => {
       await inRollback(async (tx) => {
         await tx.taxRuleVersion.update({
-          where: { id: V1_ID },
+          where: { id: V2_ID },
           data: { validUntil: new Date('2027-01-01') },
         });
         await tx.taxRuleVersion.update({
-          where: { id: V1_ID },
+          where: { id: V2_ID },
           data: { status: SUPERSEDED },
         });
       });
@@ -285,12 +306,12 @@ describe('Regras tributárias (e2e)', () => {
     it('recusa mudar uma vigência já fechada', async () => {
       await inRollback(async (tx) => {
         await tx.taxRuleVersion.update({
-          where: { id: V1_ID },
+          where: { id: V2_ID },
           data: { validUntil: new Date('2027-01-01') },
         });
         await expect(
           tx.taxRuleVersion.update({
-            where: { id: V1_ID },
+            where: { id: V2_ID },
             data: { validUntil: new Date('2028-01-01') },
           }),
         ).rejects.toThrow(IMMUTABLE);
@@ -300,12 +321,12 @@ describe('Regras tributárias (e2e)', () => {
     it('recusa voltar a publicar uma versão substituída', async () => {
       await inRollback(async (tx) => {
         await tx.taxRuleVersion.update({
-          where: { id: V1_ID },
+          where: { id: V2_ID },
           data: { status: SUPERSEDED },
         });
         await expect(
           tx.taxRuleVersion.update({
-            where: { id: V1_ID },
+            where: { id: V2_ID },
             data: { status: PUBLISHED },
           }),
         ).rejects.toThrow(IMMUTABLE);
@@ -315,7 +336,7 @@ describe('Regras tributárias (e2e)', () => {
     it('recusa apagar uma versão publicada', async () => {
       await inRollback(async (tx) => {
         await expect(
-          tx.taxRuleVersion.delete({ where: { id: V1_ID } }),
+          tx.taxRuleVersion.delete({ where: { id: V2_ID } }),
         ).rejects.toThrow(/não pode ser apagada/);
       });
     });

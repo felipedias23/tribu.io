@@ -67,11 +67,12 @@ Todos os campos tributários aceitam `NULL`, que significa **dado ausente**, dif
 | `revenue_12m` | `decimal(15,2)` | receita bruta dos 12 meses anteriores ao período (RBT12), ≥ 0 (`CHECK`) |
 | `payroll_12m` | `decimal(15,2)` | folha dos mesmos 12 meses, ≥ 0 (`CHECK`) |
 | `reference_period` | `date` | mês de referência, sempre o 1.º dia (`CHECK`); a API aceita anos de 1900 a 2099 e nunca um mês depois do atual (D29) |
+| `fator_r_subject` | `boolean` | atividade sujeita ao Fator R (LC 123/2006, art. 18, §§ 5º-I e 5º-M); `NULL` = não informado, nunca presumido como sim (D33) |
 | `created_at`, `updated_at` | `timestamptz(3)` | preenchidos automaticamente |
 
 ### `tax_rules` e `tax_rule_versions`
 
-Catálogo global, igual para todos os escritórios. Não tem endpoint de escrita: muda só por migration (regra S11), e a verificação do Prisma recusa escritas pela API. A versão 1 do Fator R (D28) é inserida pela migration `20261009185650_simples_fator_r_v1`, porque é um dado de referência que tem de existir também em produção, onde o seed não corre.
+Catálogo global, igual para todos os escritórios. Não tem endpoint de escrita: muda só por migration (regra S11), e a verificação do Prisma recusa escritas pela API. A versão 1 do Fator R (D28) é inserida pela migration `20261009185650_simples_fator_r_v1`, porque é um dado de referência que tem de existir também em produção, onde o seed não corre. A versão 2 (D33), com os mesmos parâmetros e o evaluator `SIMPLES_FATOR_R@2`, substitui-a a partir da migration `20261009211733_simples_fator_r_v2`; a versão 1 fica `SUPERSEDED`, ligada às análises feitas com ela.
 
 | Coluna | Tipo | Regras |
 |---|---|---|
@@ -161,6 +162,8 @@ Ficam em [`backend/prisma/migrations/`](../backend/prisma/migrations/) e são ve
 | `20261009185649_tax_rules` | Enum `tax_rule_version_status`, tabelas `tax_rules` e `tax_rule_versions`, extensão `btree_gist`, `EXCLUDE` de sobreposição, `CHECK` e trigger de imutabilidade |
 | `20261009185650_simples_fator_r_v1` | Regra `SIMPLES_FATOR_R` e a sua versão 1 publicada (D28, §3.4.1) |
 | `20261009200659_analyses` | Enums `analysis_status` e `radar_status`, tabela `analyses` com FKs compostas, `UNIQUE (id, accounting_firm_id)` em `users`, `CHECK` e trigger de imutabilidade e de checksum |
+| `20261009211732_tax_profiles_fator_r_subject` | Coluna `fator_r_subject` em `tax_profiles` (D33) |
+| `20261009211733_simples_fator_r_v2` | Versão 1 do Fator R passa a `SUPERSEDED`; versão 2 publicada com o evaluator `SIMPLES_FATOR_R@2` (D33) |
 
 Comandos (a partir de `backend/`, com o PostgreSQL a correr: `docker compose up -d db`):
 

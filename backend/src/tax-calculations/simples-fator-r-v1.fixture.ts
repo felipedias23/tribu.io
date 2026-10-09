@@ -84,3 +84,11 @@ export const FATOR_R_V1_VERSION = {
   evaluatorKey: 'SIMPLES_FATOR_R@1',
   parameters: FATOR_R_V1,
 };
+
+/** Versão 2 (D33): os mesmos parâmetros, com o evaluator @2. */
+export const FATOR_R_V2_VERSION = {
+  id: 'f0000000-0000-4000-8000-000000000102',
+  version: 2,
+  evaluatorKey: 'SIMPLES_FATOR_R@2',
+  parameters: FATOR_R_V1,
+};
