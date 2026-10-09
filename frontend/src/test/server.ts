@@ -22,6 +22,12 @@ export const emptyTaxProfile = {
   updatedAt: null,
 };
 
+/** Carteira vazia: nenhuma empresa em nenhum estado. */
+export const emptyRadarSummary = {
+  total: 0,
+  counts: { DADOS_INCOMPLETOS: 0, REVISAR_REGRA: 0, REQUER_ANALISE: 0, OPORTUNIDADE_PARA_AVALIAR: 0, NORMAL: 0 },
+};
+
 export function errorResponse(status: number, message: string, details?: { field: string; messages: string[] }[]) {
   return HttpResponse.json({ statusCode: status, error: 'Error', message, details }, { status });
 }
@@ -32,4 +38,6 @@ export const server = setupServer(
   http.get('/api/v1/auth/me', () => errorResponse(401, 'Sessão inválida ou expirada.')),
   http.get('/api/v1/companies', () => HttpResponse.json({ items: [], total: 0, page: 1, pageSize: 20 })),
   http.get('/api/v1/companies/:id/tax-profile', () => HttpResponse.json(emptyTaxProfile)),
+  http.get('/api/v1/radar', () => HttpResponse.json({ items: [], total: 0, page: 1, pageSize: 20 })),
+  http.get('/api/v1/radar/summary', () => HttpResponse.json(emptyRadarSummary)),
 );

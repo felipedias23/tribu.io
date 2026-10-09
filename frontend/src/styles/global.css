@@ -18,6 +18,11 @@
   --color-surface: #ffffff;
   --color-border: #d4dae3;
   --color-success: #1e8e3e;
+  --color-success-strong: #146c2e;
+  --color-success-soft: #e6f4ea;
+  --color-warning: #7a4f00;
+  --color-warning-soft: #fff4d6;
+  --color-neutral-soft: #eef1f5;
   --color-danger: #c5221f;
   --color-danger-soft: #fdecea;
   --color-focus: #1f4e79;

@@ -6,6 +6,7 @@ import { RequireAuth } from '../auth/RequireAuth';
 import { CompaniesPage } from '../companies/CompaniesPage';
 import { CompanyDetailPage } from '../companies/CompanyDetailPage';
 import { CompanyNewPage } from '../companies/CompanyNewPage';
+import { RadarPage } from '../radar/RadarPage';
 import { PlaceholderPage } from '../shared/components/PlaceholderPage';
 import { AppLayout } from './AppLayout';
 import { ErrorPage } from './ErrorPage';
@@ -34,7 +35,7 @@ export const routes: RouteObject[] = [
             element: <AppLayout />,
             children: [
               { index: true, element: <Navigate to="/radar" replace /> },
-              { path: '/radar', element: <PlaceholderPage title="Tax Radar" /> },
+              { path: '/radar', element: <RadarPage /> },
               { path: '/companies', element: <CompaniesPage /> },
               { path: '/companies/new', element: <CompanyNewPage /> },
               { path: '/companies/:id', element: <CompanyDetailPage /> },
