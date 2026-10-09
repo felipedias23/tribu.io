@@ -16,14 +16,91 @@ function check(operation: string, args?: Record<string, unknown>) {
 describe('Verificação de tenant no Prisma (D16)', () => {
   it('identifica os models do tenant pela coluna accountingFirmId', () => {
     expect([...TENANT_MODELS].sort()).toEqual([
+      'Analysis',
       'Company',
       'TaxProfile',
       'User',
     ]);
   });
 
-  it('ignora models globais, que não são do tenant', () => {
-    expect(() => assertTenantScoped('TaxRule', 'findMany', {})).not.toThrow();
+  describe('análises: só inserção e leitura (§3.4)', () => {
+    const where = { id: 'x', accountingFirmId: TENANT };
+
+    it('aceita criar e ler com o tenant', () => {
+      expect(() =>
+        assertTenantScoped('Analysis', 'create', {
+          data: { accountingFirmId: TENANT },
+        }),
+      ).not.toThrow();
+      for (const operation of ['findFirst', 'findMany', 'count']) {
+        expect(() =>
+          assertTenantScoped('Analysis', operation, { where }),
+        ).not.toThrow();
+      }
+    });
+
+    it.each([
+      'update',
+      'updateMany',
+      'updateManyAndReturn',
+      'upsert',
+      'delete',
+      'deleteMany',
+    ])('recusa %s, mesmo com o tenant', (operation) => {
+      expect(() =>
+        assertTenantScoped('Analysis', operation, {
+          where,
+          data: {},
+          create: { accountingFirmId: TENANT },
+          update: {},
+        }),
+      ).toThrow('registo imutável: só inserção e leitura');
+    });
+
+    it('continua a exigir o tenant', () => {
+      expect(() =>
+        assertTenantScoped('Analysis', 'findMany', { where: { id: 'x' } }),
+      ).toThrow(TenantScopeViolationError);
+    });
+  });
+
+  describe('catálogo global de regras (S11)', () => {
+    it.each(['TaxRule', 'TaxRuleVersion'])(
+      '%s aceita leituras sem tenant',
+      (model) => {
+        for (const operation of [
+          'findUnique',
+          'findFirst',
+          'findMany',
+          'count',
+          'aggregate',
+          'groupBy',
+        ]) {
+          expect(() => assertTenantScoped(model, operation, {})).not.toThrow();
+        }
+      },
+    );
+
+    it.each([
+      'create',
+      'createMany',
+      'update',
+      'updateMany',
+      'upsert',
+      'delete',
+      'deleteMany',
+      'findRaw',
+    ])('recusa %s em TaxRuleVersion', (operation) => {
+      expect(() =>
+        assertTenantScoped('TaxRuleVersion', operation, { where: {} }),
+      ).toThrow('catálogo global só muda por migration (regra S11)');
+    });
+
+    it('recusa escrever em TaxRule', () => {
+      expect(() =>
+        assertTenantScoped('TaxRule', 'update', { where: { id: 'x' } }),
+      ).toThrow(TenantScopeViolationError);
+    });
   });
 
   describe('o próprio escritório (AccountingFirm)', () => {

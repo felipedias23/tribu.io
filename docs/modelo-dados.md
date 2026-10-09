@@ -79,7 +79,7 @@ erDiagram
         uuid taxRuleId FK
         int version
         date validFrom
-        date validUntil "nulo = em vigor"
+        date validUntil "exclusivo; nulo = em vigor"
         jsonb parameters
         string source "base legal"
         string evaluatorKey "ex.: SIMPLES_FATOR_R@1"
@@ -90,10 +90,10 @@ erDiagram
         uuid id PK
         uuid accountingFirmId FK
         uuid companyId FK
-        uuid taxRuleVersionId FK
+        uuid taxRuleVersionId FK "nulo só em INCOMPLETE (D31)"
         uuid executedById FK
         jsonb inputSnapshot
-        string parametersChecksum
+        string parametersChecksum "nulo sem versão"
         string engineVersion
         enum status "COMPLETED | INCOMPLETE"
         enum radarStatus
@@ -162,7 +162,7 @@ erDiagram
 | TaxProfile | único `(companyId, accountingFirmId)` (um perfil por empresa); FK composta → Company; `CHECK` valores ≥ 0; campos tributários anuláveis | Um perfil por empresa, do mesmo tenant; nulo = dado ausente, distinto de zero (D20) |
 | TaxRule | `code` único | Catálogo global de regras |
 | TaxRuleVersion | único `(taxRuleId, version)`; `CHECK validUntil > validFrom`; `EXCLUDE` sobreposição de vigência | Só uma versão vigente por período |
-| Analysis | FKs compostas → Company e User; índices `(accountingFirmId, companyId, executedAt DESC)` e `(accountingFirmId, radarStatus)` | Histórico por empresa; filtros do Radar |
+| Analysis | FKs compostas → Company e User; índice `(accountingFirmId, companyId, executedAt DESC)`; trigger de imutabilidade | Histórico por empresa. O Radar é calculado no pedido (D26), por isso `radarStatus` não precisa de índice |
 | Simulation | FKs compostas → Company e User; único `(id, accountingFirmId)` | Isolamento entre tenants; alvo da FK composta de SimulationScenario |
 | SimulationScenario | FK composta → Simulation; único `(simulationId, label)` | Cenários com nome distinto, do mesmo tenant da simulação |
 | AuditLog | apenas inserção (append-only); FK composta → User; índice `(accountingFirmId, createdAt DESC)` | Trilho de auditoria imutável |

@@ -4,7 +4,7 @@ PostgreSQL 17 com Prisma 7. O modelo completo planeado para o MVP está no [rela
 
 ## Estado atual
 
-Semana 3: o tenant, os utilizadores, as empresas e os perfis tributários. As outras entidades (TaxRule, Analysis, …) entram por migration na semana da respetiva funcionalidade.
+Semana 4: o tenant, os utilizadores, as empresas, os perfis tributários, o catálogo de regras tributárias e as análises. As outras entidades (Simulation, …) entram por migration na semana da respetiva funcionalidade.
 
 | Tabela | Modelo Prisma | Finalidade |
 |---|---|---|
@@ -12,6 +12,9 @@ Semana 3: o tenant, os utilizadores, as empresas e os perfis tributários. As ou
 | `users` | `User` | Utilizador de um escritório, com papel `ADMIN`, `ANALYST` ou `VIEWER` |
 | `companies` | `Company` | Empresa cliente do escritório (US06) |
 | `tax_profiles` | `TaxProfile` | Dados tributários de uma empresa, 1:1 (US08) |
+| `tax_rules` | `TaxRule` | Catálogo **global** de regras tributárias (§3.4); não pertence a um escritório |
+| `tax_rule_versions` | `TaxRuleVersion` | Versões de cada regra, com vigência, parâmetros e checksum (§3.4, D28) |
+| `analyses` | `Analysis` | Execução de uma regra sobre uma empresa, imutável (US09, D31) |
 
 Tabelas e colunas em `snake_case` no PostgreSQL (`@@map`/`@map`); no código TypeScript os nomes ficam em `camelCase`.
 
@@ -66,6 +69,46 @@ Todos os campos tributários aceitam `NULL`, que significa **dado ausente**, dif
 | `reference_period` | `date` | mês de referência, sempre o 1.º dia (`CHECK`); a API aceita anos de 1900 a 2099 |
 | `created_at`, `updated_at` | `timestamptz(3)` | preenchidos automaticamente |
 
+### `tax_rules` e `tax_rule_versions`
+
+Catálogo global, igual para todos os escritórios. Não tem endpoint de escrita: muda só por migration (regra S11), e a verificação do Prisma recusa escritas pela API. A versão 1 do Fator R (D28) é inserida pela migration `20261009185650_simples_fator_r_v1`, porque é um dado de referência que tem de existir também em produção, onde o seed não corre.
+
+| Coluna | Tipo | Regras |
+|---|---|---|
+| `tax_rules.code` | `text` | único; maiúsculas, dígitos e `_` (`CHECK`), ex.: `SIMPLES_FATOR_R` |
+| `tax_rules.name`, `description` | `text` | obrigatórios |
+| `tax_rule_versions.tax_rule_id` | `uuid` | FK → `tax_rules.id`, `ON DELETE RESTRICT` |
+| `version` | `integer` | ≥ 1; único por regra |
+| `valid_from` | `date` | primeiro dia de vigência |
+| `valid_until` | `date` | **exclusivo**: primeiro dia em que já não vale; `NULL` = sem fim. `CHECK valid_until > valid_from` |
+| `parameters` | `jsonb` | objeto (`CHECK`); decimais em texto. Validado na aplicação com Zod ([`simples-fator-r.parameters.ts`](../backend/src/tax-rules/simples-fator-r.parameters.ts)) |
+| `source` | `text` | base legal, não vazia |
+| `evaluator_key` | `text` | `CÓDIGO@N` (`CHECK`), ex.: `SIMPLES_FATOR_R@1` |
+| `status` | enum `tax_rule_version_status` | `DRAFT`, `PUBLISHED`, `SUPERSEDED` |
+| `checksum` | `char(64)` | SHA-256 em hexadecimal do JSON canónico dos parâmetros ([`checksum.ts`](../backend/src/tax-rules/checksum.ts)) |
+
+**Uma versão publicada por dia:** `tax_rule_versions_published_no_overlap` é uma restrição `EXCLUDE` sobre `(tax_rule_id, daterange(valid_from, valid_until, '[)'))`, só entre versões `PUBLISHED`. Usa a extensão `btree_gist`, que é confiável (não exige superuser).
+
+**Imutabilidade (§3.4):** o trigger `tax_rule_versions_guard_immutable` recusa alterar uma versão que já saiu de `DRAFT`. As únicas mudanças aceites são passar de `PUBLISHED` a `SUPERSEDED` e fechar a vigência (`valid_until` de `NULL` para uma data). Uma versão publicada ou substituída também não pode ser apagada. Para mudar parâmetros, publica-se uma versão nova.
+
+### `analyses`
+
+Cada execução cria um registo novo; nenhum é alterado (§3.4). A verificação do Prisma só aceita inserir e ler, e um trigger recusa `UPDATE` no banco. Apagar fica permitido para a remoção de um escritório.
+
+| Coluna | Tipo | Regras |
+|---|---|---|
+| `accounting_firm_id` | `uuid` | obrigatório; FKs compostas com `company_id` → `companies` e com `executed_by_id` → `users` (D15) |
+| `company_id`, `executed_by_id` | `uuid` | empresa analisada e utilizador que executou |
+| `tax_rule_version_id` | `uuid` | FK → `tax_rule_versions`; `NULL` só em `INCOMPLETE` sem versão escolhida (D31) |
+| `input_snapshot` | `jsonb` | perfil usado no cálculo, decimais em texto (D6) |
+| `parameters_checksum` | `char(64)` | o checksum da versão usada (o trigger confirma); `NULL` sem versão |
+| `engine_version` | `text` | versão do Tax Engine, `X.Y.Z` (`CHECK`) |
+| `status` | enum `analysis_status` | `COMPLETED` (com versão e resultado) ou `INCOMPLETE` (sem resultado) — `CHECK` |
+| `radar_status` | enum `radar_status` | estado do Radar no momento da execução (histórico, D26) |
+| `result` | `jsonb` | Fator R, anexo, faixa e alíquotas; `NULL` em `INCOMPLETE` |
+| `trace` | `jsonb` | desfecho, passos, ausências, premissas e motivos (US11) |
+| `executed_at` | `timestamptz(3)` | momento da execução |
+
 ### Restrições
 
 | Nome | Tipo | Motivo |
@@ -88,6 +131,12 @@ Todos os campos tributários aceitam `NULL`, que significa **dado ausente**, dif
 | `tax_profiles_company_id_accounting_firm_id_key` | único | Um perfil por empresa. A ordem das colunas é a da FK, uma exigência do Prisma para relações 1:1 |
 | `tax_profiles_accounting_firm_id_idx` | índice | Índice que começa pelo tenant (regra S7) |
 | `tax_profiles_*_check` | `CHECK` | CNAE, UF, valores não negativos e mês de referência |
+| `tax_rule_versions_published_no_overlap` | `EXCLUDE` | Duas versões publicadas da mesma regra nunca valem no mesmo dia |
+| `tax_rule_versions_*_check`, `tax_rules_*_check` | `CHECK` | Vigência, número da versão, formato do código, do evaluator e do checksum, parâmetros como objeto |
+| `tax_rule_versions_guard_immutable` | trigger | Versões publicadas imutáveis e não apagáveis |
+| `analyses_*_fkey` (compostas) | FK | A análise, a empresa e o autor são do mesmo escritório (D15) |
+| `analyses_status_content_check`, `analyses_version_checksum_check` | `CHECK` | `COMPLETED` tem versão e resultado; versão e checksum andam juntos |
+| `analyses_guard` | trigger | Análise imutável; checksum igual ao da versão usada |
 
 ## Decisões de modelagem
 
@@ -95,9 +144,9 @@ Todos os campos tributários aceitam `NULL`, que significa **dado ausente**, dif
 - **Email único global** e não por escritório: o login recebe apenas email e password, por isso o email tem de identificar um único utilizador.
 - **`ON DELETE RESTRICT`** entre utilizador e escritório: apagar um tenant exige remover primeiro os seus dados, de forma explícita.
 - **Sem campo de estado (`status`) no utilizador:** não está definido nos documentos aprovados.
-- **Isolamento entre tenants.** Toda tabela do tenant tem `accounting_firm_id`, e as consultas devem filtrar sempre por `{ id, accountingFirmId }`. A primeira **FK composta** é `tax_profiles (company_id, accounting_firm_id)` → `companies(id, accounting_firm_id)` (relatório §3.3): o banco recusa um perfil ligado a uma empresa de outro escritório. A tabela `users` recebe `UNIQUE (id, accounting_firm_id)` na migration da primeira tabela que a referencie (`analyses`, semana 4), para servir de alvo às FKs compostas ([modelo de dados](modelo-dados.md#restrições-e-índices)). Toda tabela nova segue as regras de schema do tenant (decisão D15, [seguranca.md](seguranca.md#schema-d15)), verificadas por um teste de catálogo do schema.
+- **Isolamento entre tenants.** Toda tabela do tenant tem `accounting_firm_id`, e as consultas devem filtrar sempre por `{ id, accountingFirmId }`. A primeira **FK composta** é `tax_profiles (company_id, accounting_firm_id)` → `companies(id, accounting_firm_id)` (relatório §3.3): o banco recusa um perfil ligado a uma empresa de outro escritório. A tabela `users` recebeu `UNIQUE (id, accounting_firm_id)` na migration de `analyses`, para servir de alvo às FKs compostas ([modelo de dados](modelo-dados.md#restrições-e-índices)). Toda tabela nova segue as regras de schema do tenant (decisão D15, [seguranca.md](seguranca.md#schema-d15)), verificadas por um teste de catálogo do schema.
 - **Ordenação em português:** a collation do banco ordena pelo valor binário (maiúsculas antes de minúsculas, acentos no fim). A razão social usa a collation ICU `pt-BR-x-icu`, aplicada por SQL na migration porque o Prisma não a expressa.
-- **`CHECK` em SQL manual:** o Prisma não expressa `CHECK`, por isso essas restrições estão escritas no fim do `migration.sql`, numa secção identificada.
+- **`CHECK`, `EXCLUDE` e triggers em SQL manual:** o Prisma não os expressa, por isso estão escritos no fim do `migration.sql`, numa secção identificada. O `prisma migrate diff` do CI ignora-os e continua sem diferenças.
 
 ## Migrations
 
@@ -109,6 +158,9 @@ Ficam em [`backend/prisma/migrations/`](../backend/prisma/migrations/) e são ve
 | `20261003114532_companies` | Tabela `companies`: unicidade do CNPJ no escritório, `UNIQUE (id, accounting_firm_id)` para as FKs compostas e restrições `CHECK` |
 | `20261003114937_companies_legal_name_collation` | Razão social com a collation `pt-BR-x-icu` (ordenação em português) |
 | `20261003150505_tax_profiles` | Enum `tax_regime` e tabela `tax_profiles`, com FK composta para `companies` e restrições `CHECK` |
+| `20261009185649_tax_rules` | Enum `tax_rule_version_status`, tabelas `tax_rules` e `tax_rule_versions`, extensão `btree_gist`, `EXCLUDE` de sobreposição, `CHECK` e trigger de imutabilidade |
+| `20261009185650_simples_fator_r_v1` | Regra `SIMPLES_FATOR_R` e a sua versão 1 publicada (D28, §3.4.1) |
+| `20261009200659_analyses` | Enums `analysis_status` e `radar_status`, tabela `analyses` com FKs compostas, `UNIQUE (id, accounting_firm_id)` em `users`, `CHECK` e trigger de imutabilidade e de checksum |
 
 Comandos (a partir de `backend/`, com o PostgreSQL a correr: `docker compose up -d db`):
 
@@ -146,7 +198,7 @@ Todas usam a password definida em `SEED_PASSWORD` no `.env`. Os emails usam o do
 | Beta Contabilidade | `analista@beta.tribu.example` | `ANALYST` |
 | Beta Contabilidade | `consulta@beta.tribu.example` | `VIEWER` |
 
-Cada escritório tem também seis empresas fictícias. Os CNPJs têm raiz alfanumérica começada por `TRIBU` (ex.: `TRIBUA000001` + dígitos verificadores), para não coincidirem com empresas reais. Cinco delas têm perfil tributário: alguns completos e outros com dados ausentes (sem folha, sem faturamento, sem período), e uma empresa por escritório fica sem perfil.
+Cada escritório tem também 15 empresas fictícias (30 no total). Os CNPJs têm raiz alfanumérica começada por `TRIBU` (ex.: `TRIBUA000001` + dígitos verificadores), para não coincidirem com empresas reais. Os perfis tributários foram escolhidos para que **cada escritório demonstre os 5 estados do Tax Radar** (§3.5): dados em falta e empresas sem perfil, mês anterior à vigência da regra, RBT12 acima do limite ou zero, folha maior que a receita, dados antigos, Fator R perto do limiar e casos normais nos Anexos III e V e fora do Simples. Um teste unitário do seed verifica essa cobertura. Os meses de referência são fixos (a maioria `2026-09`), por isso, com o passar do tempo, mais empresas passam a `REQUER_ANALISE` por dados desatualizados.
 
 A password só é aplicada quando a conta é **criada**. Mudar `SEED_PASSWORD` depois não altera contas existentes; para isso, recrie o banco.
 

@@ -71,6 +71,9 @@ export async function deleteTenants(
   tenants: (Tenant | undefined)[],
 ): Promise<void> {
   const firmIds = tenants.flatMap((tenant) => (tenant ? [tenant.firmId] : []));
+  await prisma.analysis.deleteMany({
+    where: { accountingFirmId: { in: firmIds } },
+  });
   await prisma.taxProfile.deleteMany({
     where: { accountingFirmId: { in: firmIds } },
   });

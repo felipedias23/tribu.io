@@ -121,7 +121,7 @@ Acrescentar colegas ao escritório é a US17 (decisão D22).
 **Como** contador, **quero** executar a análise do Fator R do Simples Nacional **para** saber se a empresa se enquadra no Anexo III ou V e qual a alíquota efetiva.
 
 - [ ] Usa a versão da regra publicada e vigente no mês de referência (parâmetros na [§3.4.1](arquitetura-e-decisoes.md#341-parâmetros-da-versão-1-d28)).
-- [ ] Sem dados obrigatórios, a análise fica `INCOMPLETE` e lista o que falta.
+- [ ] Sem dados obrigatórios, a análise fica `INCOMPLETE` e lista o que falta; fora do Simples Nacional responde 422 e nada é gravado (decisão D31).
 - [ ] A análise guarda snapshot da entrada, versão da regra, checksum e trace; é imutável.
 - [ ] Reexecutar com a mesma entrada e versão produz resultado idêntico (teste de replay).
 - [ ] `ADMIN` e `ANALYST` executam; `VIEWER` consulta e recebe 403 ao executar (decisão D27).

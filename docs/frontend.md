@@ -16,6 +16,7 @@ frontend/src/
 │   └── ErrorPage.tsx        # erro inesperado (errorElement do router)
 ├── auth/                    # sessão, login, registo, RequireAuth, AuthLayout
 ├── companies/               # lista, cadastro e detalhe de empresas (US06, US07) e perfil tributário (US08)
+├── radar/                   # Tax Radar (US10): resumo por estado, lista por prioridade, formatação
 ├── components/ApiStatus.tsx # estado da API (GET /health) nas páginas de login e registo
 ├── shared/
 │   ├── api/http.ts          # cliente HTTP, ApiError, aviso de sessão expirada
@@ -26,7 +27,7 @@ frontend/src/
 └── test/                    # MSW (server.ts) e renderRoute
 ```
 
-As pastas dos outros módulos de negócio (`radar/`, `imports/`, …) são criadas quando cada módulo for implementado.
+As pastas dos outros módulos de negócio (`imports/`, …) são criadas quando cada módulo for implementado.
 
 ## Rotas
 
@@ -34,7 +35,7 @@ As pastas dos outros módulos de negócio (`radar/`, `imports/`, …) são criad
 |---|---|---|
 | `/login`, `/register` | público (com sessão → página de origem ou `/radar`) | formulários |
 | `/` | sessão | redireciona para `/radar` |
-| `/radar` | sessão | **página inicial**, "Em construção" |
+| `/radar` | sessão (todos os papéis, D27) | **página inicial**: resumo por estado, que também filtra, e carteira por prioridade com o motivo de cada sinal (filtro e página no URL) |
 | `/companies` | sessão | lista de empresas com pesquisa e paginação (pesquisa e página no URL) |
 | `/companies/new` | sessão; formulário só para `ADMIN` e `ANALYST` | cadastro de empresa |
 | `/companies/:id` | sessão; editar só para `ADMIN` e `ANALYST` | dados da empresa e edição, perfil tributário |
@@ -50,6 +51,7 @@ Todas as secções aparecem para todos os papéis (decisão D21). Para restringi
 - Leituras usam `useQuery` com as chaves de cada módulo (ex.: `companyKeys` em `companies/api.ts`). Depois de gravar, a página atualiza o detalhe no cache e invalida as listas do módulo.
 - Erros 4xx não são repetidos; falhas de rede e 5xx tentam mais uma vez.
 - O cache é limpo quando deixa de haver sessão, no logout ou quando a sessão expira (regra S24).
+- O estado do Radar é calculado pela API a cada pedido (D26). Gravar uma empresa ou um perfil tributário invalida `radarKeys.all`, para o Radar não mostrar um estado antigo.
 - Ações que o papel não permite ficam escondidas (ex.: `canEditCompanies`), mas quem autoriza é a API.
 
 ## Dados ausentes (D20)
@@ -98,8 +100,10 @@ Os estilos base são os do telemóvel; o desktop aplica-se com `@media (min-widt
 | `companies/cnpj.test.ts` | máscara do CNPJ numérico e alfanumérico |
 | `companies/taxProfile.test.tsx` | perfil com dados ausentes, perfil vazio, VIEWER sem ações, preenchimento e erro por campo |
 | `companies/taxProfileFormat.test.ts` | máscara do CNAE, valores em reais e mês de referência |
+| `radar/radar.test.tsx` | estado, motivo e cálculo por empresa, ordem da API, resumo e filtro no URL, paginação com filtro, erro, atualização depois de gravar o perfil |
+| `radar/format.test.ts` | percentagens a partir do texto da API, truncadas e sem vírgula flutuante |
 | `app/ErrorPage.test.tsx` | página de erro sem detalhes técnicos |
 | `shared/api/http.test.ts` | erros padronizados, 204, aviso de 401 fora de `/auth/*` |
 | `components/ApiStatus.test.tsx` | estado da API: online, erro do health check e sem resposta |
 
-O jsdom não aplica CSS: o comportamento responsivo (painel escondido no telemóvel, barra lateral no desktop, lista de empresas em cartões no telemóvel) é verificado no browser a 375px e 1280px.
+O jsdom não aplica CSS: o comportamento responsivo (painel escondido no telemóvel, barra lateral no desktop, empresas e Radar em cartões no telemóvel) é verificado no browser a 375px e 1280px.

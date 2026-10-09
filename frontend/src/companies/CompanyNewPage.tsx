@@ -6,6 +6,7 @@ import { companyKeys, createCompany, type CompanyInput } from './api';
 import styles from './Companies.module.css';
 import { CompanyForm } from './CompanyForm';
 import { canEditCompanies } from './permissions';
+import { radarKeys } from '../radar/api';
 
 /** Cadastro de uma empresa (US06). */
 export function CompanyNewPage() {
@@ -18,6 +19,8 @@ export function CompanyNewPage() {
     const company = await createCompany(input);
     queryClient.setQueryData(companyKeys.detail(company.id), company);
     await queryClient.invalidateQueries({ queryKey: companyKeys.all, refetchType: 'none' });
+    // O estado do Radar é calculado a partir destes dados (D26).
+    await queryClient.invalidateQueries({ queryKey: radarKeys.all, refetchType: 'none' });
     await navigate(`/companies/${company.id}`);
   }
 

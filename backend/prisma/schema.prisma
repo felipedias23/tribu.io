@@ -39,6 +39,37 @@ enum TaxRegime {
   @@map("tax_regime")
 }
 
+/// Estado de uma versão de regra tributária (§3.4). Só uma versão PUBLISHED
+/// pode estar vigente em cada dia (EXCLUDE na migration).
+enum TaxRuleVersionStatus {
+  DRAFT
+  PUBLISHED
+  SUPERSEDED
+
+  @@map("tax_rule_version_status")
+}
+
+/// Estado de uma análise (D31): COMPLETED tem resultado; INCOMPLETE regista o
+/// que faltou ou impediu o cálculo.
+enum AnalysisStatus {
+  COMPLETED
+  INCOMPLETE
+
+  @@map("analysis_status")
+}
+
+/// Estados do Tax Radar (§3.5). Numa análise, é o estado no momento da execução
+/// (histórico); o estado atual é calculado no pedido (D26).
+enum RadarStatus {
+  DADOS_INCOMPLETOS
+  REVISAR_REGRA
+  REQUER_ANALISE
+  OPORTUNIDADE_PARA_AVALIAR
+  NORMAL
+
+  @@map("radar_status")
+}
+
 /// Escritório de contabilidade: o tenant. Toda entidade do tenant referencia
 /// esta tabela por `accountingFirmId`.
 model AccountingFirm {
@@ -72,7 +103,10 @@ model User {
   updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   accountingFirm AccountingFirm @relation(fields: [accountingFirmId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  analyses       Analysis[]
 
+  /// Alvo das FKs compostas das tabelas filhas (decisão D15).
+  @@unique([id, accountingFirmId])
   @@index([accountingFirmId])
   @@map("users")
 }
@@ -93,6 +127,7 @@ model Company {
 
   accountingFirm AccountingFirm @relation(fields: [accountingFirmId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   taxProfile     TaxProfile?
+  analyses       Analysis[]
 
   /// O CNPJ não se repete dentro do escritório (regra S9).
   @@unique([accountingFirmId, cnpj])
@@ -131,4 +166,84 @@ model TaxProfile {
   @@unique([companyId, accountingFirmId])
   @@index([accountingFirmId])
   @@map("tax_profiles")
+}
+
+/// Catálogo global de regras tributárias (§3.4). Não pertence a um escritório
+/// e não tem endpoint de escrita: muda só por migration (regra S11).
+model TaxRule {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  /// Ex.: SIMPLES_FATOR_R (CHECK na migration).
+  code        String   @unique
+  name        String
+  description String
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  versions TaxRuleVersion[]
+
+  @@map("tax_rules")
+}
+
+/// Versão de uma regra, com vigência e parâmetros. Uma versão publicada é
+/// imutável (trigger na migration): uma mudança gera uma versão nova.
+model TaxRuleVersion {
+  id           String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  taxRuleId    String               @map("tax_rule_id") @db.Uuid
+  version      Int
+  /// Primeiro dia de vigência.
+  validFrom    DateTime             @map("valid_from") @db.Date
+  /// Primeiro dia em que já não vale (exclusivo); NULL = em vigor sem fim.
+  validUntil   DateTime?            @map("valid_until") @db.Date
+  /// Parâmetros lidos pelo evaluator (ex.: faixas e alíquotas); valores
+  /// decimais como texto, para não perder precisão.
+  parameters   Json                 @db.JsonB
+  /// Base legal.
+  source       String
+  /// Evaluator que interpreta os parâmetros, ex.: SIMPLES_FATOR_R@1.
+  evaluatorKey String               @map("evaluator_key")
+  status       TaxRuleVersionStatus
+  /// SHA-256 (hex) do JSON canónico dos parâmetros.
+  checksum     String               @db.Char(64)
+  createdAt    DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  taxRule  TaxRule    @relation(fields: [taxRuleId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  analyses Analysis[]
+
+  @@unique([taxRuleId, version])
+  @@map("tax_rule_versions")
+}
+
+/// Execução de uma regra tributária sobre uma empresa (US09). Imutável (trigger
+/// na migration): uma nova execução cria um registo novo. Guarda a entrada, a
+/// versão da regra, o checksum dos parâmetros e o raciocínio, para que o
+/// resultado possa ser reproduzido (§3.4).
+model Analysis {
+  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountingFirmId   String         @map("accounting_firm_id") @db.Uuid
+  companyId          String         @map("company_id") @db.Uuid
+  executedById       String         @map("executed_by_id") @db.Uuid
+  /// NULL só em INCOMPLETE, quando não havia versão vigente a escolher.
+  taxRuleVersionId   String?        @map("tax_rule_version_id") @db.Uuid
+  /// Perfil usado no cálculo (D6), decimais em texto.
+  inputSnapshot      Json           @map("input_snapshot") @db.JsonB
+  /// Checksum da versão usada; NULL quando não houve versão.
+  parametersChecksum String?        @map("parameters_checksum") @db.Char(64)
+  engineVersion      String         @map("engine_version")
+  status             AnalysisStatus
+  /// Estado do Radar no momento da execução (histórico, D26).
+  radarStatus        RadarStatus    @map("radar_status")
+  /// Resultado do cálculo; NULL em INCOMPLETE.
+  result             Json?          @db.JsonB
+  /// Raciocínio: passos, ausências, premissas e motivos.
+  trace              Json           @db.JsonB
+  executedAt         DateTime       @default(now()) @map("executed_at") @db.Timestamptz(3)
+
+  /// FKs compostas (decisão D15): empresa e autor são do mesmo escritório.
+  company        Company         @relation(fields: [companyId, accountingFirmId], references: [id, accountingFirmId], onDelete: Restrict, onUpdate: Restrict)
+  executedBy     User            @relation(fields: [executedById, accountingFirmId], references: [id, accountingFirmId], onDelete: Restrict, onUpdate: Restrict)
+  taxRuleVersion TaxRuleVersion? @relation(fields: [taxRuleVersionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  /// Histórico da empresa, mais recente primeiro (US15).
+  @@index([accountingFirmId, companyId, executedAt(sort: Desc)])
+  @@map("analyses")
 }

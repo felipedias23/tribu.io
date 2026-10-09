@@ -1,4 +1,5 @@
 import { PrismaClient, Role } from '../../src/generated/prisma/client';
+import { createAnalysis } from './analyses';
 import { createCompany } from './companies';
 import type { Tenant } from './tenants';
 
@@ -66,6 +67,48 @@ export const BOLA_CASES: BolaCase[] = [
     // Sem perfil antes; o pedido de A não pode criá-lo.
     snapshot: (prisma, companyId) =>
       prisma.taxProfile.findFirst({ where: { companyId } }),
+  },
+  {
+    method: 'POST',
+    path: '/companies/:id/analyses',
+    targetId: async (b, prisma) => {
+      const company = await createCompany(prisma, b.firmId);
+      await prisma.taxProfile.create({
+        data: {
+          accountingFirmId: b.firmId,
+          companyId: company.id,
+          taxRegime: 'SIMPLES_NACIONAL',
+          revenue12m: '1000000.00',
+          payroll12m: '300000.00',
+          referencePeriod: new Date('2026-01-01'),
+        },
+      });
+      return company.id;
+    },
+    // A não pode criar uma análise na empresa de B.
+    snapshot: (prisma, companyId) =>
+      prisma.analysis.findMany({ where: { companyId } }),
+  },
+  {
+    method: 'GET',
+    path: '/companies/:id/analyses',
+    targetId: async (b, prisma) => {
+      const company = await createCompany(prisma, b.firmId);
+      await createAnalysis(prisma, b, company.id);
+      return company.id;
+    },
+    snapshot: (prisma, companyId) =>
+      prisma.analysis.findMany({ where: { companyId } }),
+  },
+  {
+    method: 'GET',
+    path: '/analyses/:id',
+    targetId: async (b, prisma) => {
+      const company = await createCompany(prisma, b.firmId);
+      return (await createAnalysis(prisma, b, company.id)).id;
+    },
+    snapshot: (prisma, id) =>
+      prisma.analysis.findUniqueOrThrow({ where: { id } }),
   },
 ];
 

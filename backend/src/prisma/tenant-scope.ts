@@ -7,10 +7,40 @@ import { Prisma } from '../generated/prisma/client';
  */
 const SCALAR_FIELDS: Record<Prisma.ModelName, Record<string, string>> = {
   AccountingFirm: Prisma.AccountingFirmScalarFieldEnum,
+  Analysis: Prisma.AnalysisScalarFieldEnum,
   Company: Prisma.CompanyScalarFieldEnum,
   TaxProfile: Prisma.TaxProfileScalarFieldEnum,
+  TaxRule: Prisma.TaxRuleScalarFieldEnum,
+  TaxRuleVersion: Prisma.TaxRuleVersionScalarFieldEnum,
   User: Prisma.UserScalarFieldEnum,
 };
+
+/**
+ * Catálogo global (regras tributárias): sem tenant, mas também sem escrita
+ * pela API. Muda só por migration (regra S11).
+ */
+export const READ_ONLY_MODELS: ReadonlySet<string> = new Set([
+  'TaxRule',
+  'TaxRuleVersion',
+]);
+
+/**
+ * Tabelas do tenant só de inserção: um registo nunca muda nem é apagado pela
+ * API (análises imutáveis, §3.4). Apagar fica para a remoção do escritório.
+ */
+export const APPEND_ONLY_MODELS: ReadonlySet<string> = new Set(['Analysis']);
+
+/** Operações que só leem. */
+const READ_OPERATIONS = new Set([
+  'findUnique',
+  'findUniqueOrThrow',
+  'findFirst',
+  'findFirstOrThrow',
+  'findMany',
+  'count',
+  'aggregate',
+  'groupBy',
+]);
 
 /** Models do tenant: os que têm a coluna `accountingFirmId` (decisão D15). */
 export const TENANT_MODELS: ReadonlySet<string> = new Set(
@@ -126,7 +156,8 @@ function assertTenantRootScoped(
  *   `where` (dentro de `OR`, `AND` ou `NOT`, ou como `{ in: [...] }`, não conta);
  * - criação: `accountingFirmId` em cada `data`;
  * - alteração: `accountingFirmId` não pode estar no `data`.
- * O próprio escritório (`AccountingFirm`) é verificado pelo `id`.
+ * O próprio escritório (`AccountingFirm`) é verificado pelo `id`. O catálogo
+ * global (`READ_ONLY_MODELS`) só aceita leituras.
  * Operações desconhecidas são recusadas.
  *
  * Não cobre `$queryRaw` (regra S6) nem escritas aninhadas a partir de outro
@@ -141,11 +172,24 @@ export function assertTenantScoped(
     throw new TenantScopeViolationError(model, operation, reason);
   };
 
+  if (READ_ONLY_MODELS.has(model)) {
+    if (!READ_OPERATIONS.has(operation)) {
+      fail('catálogo global só muda por migration (regra S11)');
+    }
+    return;
+  }
   if (model === TENANT_ROOT_MODEL) {
     assertTenantRootScoped(operation, args, fail);
     return;
   }
   if (!TENANT_MODELS.has(model)) return;
+  if (
+    APPEND_ONLY_MODELS.has(model) &&
+    !READ_OPERATIONS.has(operation) &&
+    !CREATE_OPERATIONS.has(operation)
+  ) {
+    fail('registo imutável: só inserção e leitura');
+  }
 
   if (CREATE_OPERATIONS.has(operation)) {
     const data = args?.data;

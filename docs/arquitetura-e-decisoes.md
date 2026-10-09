@@ -1,6 +1,6 @@
 # Relatório Técnico — Fase 1 (Análise e Arquitetura)
 
-> Status: **aprovado** em 2026-09-26. Decisões D10–D14 aprovadas em 2026-09-27 (autenticação, semana 2). Decisões D15–D20 aprovadas em 2026-09-28 (auditoria de segurança, [seguranca.md](seguranca.md)). D21, aprovada em 2026-09-27 com o layout base, registada em 2026-09-28. D22 aprovada em 2026-10-02 (fecho da semana 2). D24 e D25 aprovadas em 2026-10-08 (revisão de fragilidades antes da semana 4, [seguranca.md](seguranca.md#estado-de-implementação)). D26–D30 aprovadas em 2026-10-09 (Tax Engine e Radar, semana 4).
+> Status: **aprovado** em 2026-09-26. Decisões D10–D14 aprovadas em 2026-09-27 (autenticação, semana 2). Decisões D15–D20 aprovadas em 2026-09-28 (auditoria de segurança, [seguranca.md](seguranca.md)). D21, aprovada em 2026-09-27 com o layout base, registada em 2026-09-28. D22 aprovada em 2026-10-02 (fecho da semana 2). D24 e D25 aprovadas em 2026-10-08 (revisão de fragilidades antes da semana 4, [seguranca.md](seguranca.md#estado-de-implementação)). D26–D30 aprovadas em 2026-10-09 (Tax Engine e Radar, semana 4). D31 aprovada em 2026-10-09 (análises).
 > Fontes: [definicao-do-produto.md](definicao-do-produto.md), [instrucoes-fase-analise.md](instrucoes-fase-analise.md), [regras-academicas.md](regras-academicas.md), [CLAUDE.md](CLAUDE.md).
 
 ## 1. Estado inicial
@@ -43,6 +43,7 @@
 | D28 | Regra `SIMPLES_FATOR_R@1` | Ver §3.4.1. Fator R = folha ÷ RBT12, ambos dos 12 meses anteriores ao período; com 28% ou mais, Anexo III, abaixo, Anexo V (LC 123/2006, art. 18, §§ 5º-J, 5º-K e 5º-M). Alíquota efetiva = (RBT12 × alíquota nominal − parcela a deduzir) ÷ RBT12 (art. 18, § 1º-A). A elegibilidade da atividade (CNAE) não é verificada: entra no trace como premissa. Só se aplica ao regime `SIMPLES_NACIONAL` |
 | D29 | Classificação do Radar | Precedência e critérios na §3.5. Margem do limiar (3 p.p.) e idade máxima do período (12 meses) são parâmetros da versão da regra. O mês de referência no futuro passa a ser recusado com 400 no perfil tributário |
 | D30 | Prioridade no Radar | `priorityScore` = peso do estado × 1000 + desempate. Pesos: `REQUER_ANALISE` 4, `OPORTUNIDADE_PARA_AVALIAR` 3, `REVISAR_REGRA` 2, `DADOS_INCOMPLETOS` 1, `NORMAL` 0. Desempate: ⌊999 × (1 − \|Fator R − 0,28\|)⌋ quando há Fator R, senão 0. Empate final pela razão social. A página da análise mostra código, versão, vigência e fonte da regra; a consulta de versões continua extra |
+| D31 | Análises que não calculam | Fora do Simples Nacional, `POST /companies/:id/analyses` responde 422 e nada é gravado: a regra não se aplica. Com dados em falta, RBT12 zero ou acima do limite, ou sem versão vigente no mês, a análise é gravada como `INCOMPLETE`, com o motivo e o que faltou, para ficar registado que se tentou, com que dados e com que versão. Sem mês de referência ou sem versão vigente, a análise não tem versão nem checksum |
 | — | Banco | PostgreSQL + Prisma ([ADR 0001](adr/0001-postgresql-prisma.md)) |
 | — | Forma de trabalho | Projeto individual; PRs revistos pelo professor; Conventional Commits |
 
@@ -72,7 +73,7 @@ Módulos: `common`, `config`, `prisma`, `auth`, `users`, `accounting-firms`, `co
 - Controllers: validação de DTO, autorização, delegação.
 - Services: orquestração; recebem sempre `tenantId`.
 - Tax Engine e classificador do Radar: funções puras (sem I/O, sem Nest/Prisma).
-- Dependências: `@nestjs/config` + `zod`, `class-validator`, `@nestjs/swagger`, `@nestjs/jwt` (sem `passport-jwt`, D10), `argon2`, `@nestjs/throttler`, `helmet`, `cookie-parser`, `nestjs-pino`, `exceljs`, `csv-parse`, `supertest` (dev).
+- Dependências: `@nestjs/config` + `zod`, `class-validator`, `@nestjs/swagger`, `@nestjs/jwt` (sem `passport-jwt`, D10), `argon2`, `@nestjs/throttler`, `helmet`, `cookie-parser`, `nestjs-pino`, `exceljs`, `csv-parse`, `decimal.js` (aritmética do Tax Engine), `supertest` (dev).
 
 ### 3.3 Multi-tenancy
 
@@ -93,6 +94,13 @@ RLS do PostgreSQL fica como endurecimento futuro, com gatilhos definidos em [seg
 - Seleção pela versão `PUBLISHED` vigente no período; constraint `EXCLUDE` impede sobreposição; sem versão vigente → `REVISAR_REGRA`.
 - `Analysis` é imutável e grava snapshot de entrada, versão da regra, checksum dos parâmetros, versão do engine, resultado, trace, ausências, premissas, executor e data.
 - Teste de replay garante resultado idêntico. Dados ausentes → `INCOMPLETE`; nada é inventado. Nenhum LLM participa.
+
+Implementação (semana 4):
+
+- Evaluator `SIMPLES_FATOR_R@1`, registo por chave e escolha da versão vigente em [`tax-calculations/`](../backend/src/tax-calculations/); classificador do Radar em [`radar-classifier.ts`](../backend/src/radar/radar-classifier.ts). Funções puras: o mês atual entra como parâmetro.
+- Aritmética com `decimal.js` (40 dígitos, arredondamento metade para cima). O Fator R guarda a precisão completa; a alíquota efetiva tem 4 casas (0,1303 = 13,03%). Os textos da explicação truncam o Fator R, para um valor abaixo do limiar nunca aparecer igual a ele.
+- Resultados do evaluator: `COMPLETED`; `INCOMPLETE` (lista o que falta); `NOT_COMPUTABLE` (RBT12 zero ou acima do limite); `NOT_APPLICABLE` (fora do Simples Nacional). Cada um traz o trace e as premissas.
+- `ENGINE_VERSION` (hoje `1.0.0`) é gravado em cada análise e muda quando um evaluator muda resultados.
 
 #### 3.4.1 Parâmetros da versão 1 (D28)
 
@@ -140,7 +148,7 @@ Cada sinal traz `reasons[]` (`code`, `message`, regra, versão, dados usados, au
 | TaxProfile | 1:1 com Company (único `(companyId, accountingFirmId)`); FK composta; CHECK valores ≥ 0; campos anuláveis (D20) |
 | TaxRule | `code` único |
 | TaxRuleVersion | único `(taxRuleId, version)`; CHECK `validUntil > validFrom`; EXCLUDE sobreposição |
-| Analysis | FKs compostas → Company e User; índices `(accountingFirmId, companyId, executedAt DESC)`, `(accountingFirmId, radarStatus)` |
+| Analysis | FKs compostas → Company e User; índice `(accountingFirmId, companyId, executedAt DESC)`; versão da regra e checksum anuláveis só em `INCOMPLETE` (D31); imutável (trigger) |
 | Simulation | FKs compostas → Company e User; único `(id, accountingFirmId)`; 1:N SimulationScenario |
 | SimulationScenario | `accountingFirmId`; FK composta → Simulation; único `(simulationId, label)` |
 | AuditLog | append-only; FK composta → User; índice `(accountingFirmId, createdAt DESC)` |
@@ -148,7 +156,7 @@ Cada sinal traz `reasons[]` (`code`, `message`, regra, versão, dados usados, au
 | ExternalCompanyMapping | `accountingFirmId`; FKs compostas → Integration e Company; únicos `(integrationId, externalId)`, `(integrationId, companyId)` |
 | ImportBatch | FKs compostas → Integration e User; índice `(accountingFirmId, createdAt DESC)` |
 
-Regras de schema do tenant (D15): toda tabela do tenant tem `accounting_firm_id NOT NULL` e índice que começa por ela; tabelas que podem ser pai têm único `(id, accountingFirmId)`; FKs entre tabelas do tenant são compostas; unicidades de negócio incluem o tenant. `TaxRule` e `TaxRuleVersion` são globais e só mudam por migration/seed. Valores monetários em `Decimal(15,2)`. IDs UUID. Migrations via Prisma Migrate (SQL adicional para CHECK/EXCLUDE). Seed idempotente e fictício: 2 escritórios, um usuário por papel, ~30 empresas cobrindo todos os estados do Radar, primeira regra publicada; senhas de demonstração via variáveis de ambiente.
+Regras de schema do tenant (D15): toda tabela do tenant tem `accounting_firm_id NOT NULL` e índice que começa por ela; tabelas que podem ser pai têm único `(id, accountingFirmId)`; FKs entre tabelas do tenant são compostas; unicidades de negócio incluem o tenant. `TaxRule` e `TaxRuleVersion` são globais e só mudam por migration/seed. Valores monetários em `Decimal(15,2)`. IDs UUID. Migrations via Prisma Migrate (SQL adicional para CHECK/EXCLUDE). Seed idempotente e fictício: 2 escritórios, um usuário por papel, ~30 empresas cobrindo todos os estados do Radar, primeira regra publicada (por migration, para existir também em produção); senhas de demonstração via variáveis de ambiente.
 
 ## 5. API (`/api/v1`, Swagger em `/api/docs`)
 
