@@ -17,6 +17,7 @@ frontend/src/
 ├── auth/                    # sessão, login, registo, RequireAuth, AuthLayout
 ├── companies/               # lista, cadastro e detalhe de empresas (US06, US07) e perfil tributário (US08)
 ├── radar/                   # Tax Radar (US10): resumo por estado, lista por prioridade, formatação
+├── analyses/                # executar e consultar análises (US09, US15) e a sua explicação (US11)
 ├── components/ApiStatus.tsx # estado da API (GET /health) nas páginas de login e registo
 ├── shared/
 │   ├── api/http.ts          # cliente HTTP, ApiError, aviso de sessão expirada
@@ -38,11 +39,12 @@ As pastas dos outros módulos de negócio (`imports/`, …) são criadas quando 
 | `/radar` | sessão (todos os papéis, D27) | **página inicial**: resumo por estado, que também filtra, e carteira por prioridade com o motivo de cada sinal (filtro e página no URL) |
 | `/companies` | sessão | lista de empresas com pesquisa e paginação (pesquisa e página no URL) |
 | `/companies/new` | sessão; formulário só para `ADMIN` e `ANALYST` | cadastro de empresa |
-| `/companies/:id` | sessão; editar só para `ADMIN` e `ANALYST` | dados da empresa e edição, perfil tributário |
+| `/companies/:id` | sessão; editar e executar análises só para `ADMIN` e `ANALYST` | dados da empresa e edição, perfil tributário, análises do Fator R (executar e histórico) |
+| `/analyses/:id` | sessão (todos os papéis, D27) | explicação de uma análise (US11): resultado, sinal do Radar, cálculo passo a passo, dados usados e em falta, premissas, regra com versão, vigência, fonte e checksum |
 | `/imports`, `/audit`, `/settings/*` | sessão | "Em construção" |
 | qualquer outra | sessão | 404 dentro do layout |
 
-As páginas "Em construção" não têm dados nem regras de negócio. Para implementar uma secção, troque o `PlaceholderPage` da rota pelo componente do módulo. Rotas de detalhe (`/analyses/:id`, …) entram com cada funcionalidade.
+As páginas "Em construção" não têm dados nem regras de negócio. Para implementar uma secção, troque o `PlaceholderPage` da rota pelo componente do módulo. Rotas de detalhe (`/simulations/:id`, …) entram com cada funcionalidade.
 
 Todas as secções aparecem para todos os papéis (decisão D21). Para restringir uma secção quando a regra for aprovada, acrescente `roles` ao item em `navigation.ts` e proteja também a rota e a API.
 
@@ -51,7 +53,8 @@ Todas as secções aparecem para todos os papéis (decisão D21). Para restringi
 - Leituras usam `useQuery` com as chaves de cada módulo (ex.: `companyKeys` em `companies/api.ts`). Depois de gravar, a página atualiza o detalhe no cache e invalida as listas do módulo.
 - Erros 4xx não são repetidos; falhas de rede e 5xx tentam mais uma vez.
 - O cache é limpo quando deixa de haver sessão, no logout ou quando a sessão expira (regra S24).
-- O estado do Radar é calculado pela API a cada pedido (D26). Gravar uma empresa ou um perfil tributário invalida `radarKeys.all`, para o Radar não mostrar um estado antigo.
+- O estado do Radar é calculado pela API a cada pedido (D26). Gravar uma empresa, um perfil tributário ou executar uma análise invalida `radarKeys.all`, para o Radar não mostrar um estado antigo.
+- Datas e horas aparecem no fuso do browser. Os testes fixam `America/Sao_Paulo` (`vite.config.ts`), para darem o mesmo resultado em qualquer máquina.
 - Ações que o papel não permite ficam escondidas (ex.: `canEditCompanies`), mas quem autoriza é a API.
 
 ## Dados ausentes (D20)
@@ -102,6 +105,8 @@ Os estilos base são os do telemóvel; o desktop aplica-se com `@media (min-widt
 | `companies/taxProfileFormat.test.ts` | máscara do CNAE, valores em reais e mês de referência |
 | `radar/radar.test.tsx` | estado, motivo e cálculo por empresa, ordem da API, resumo e filtro no URL, paginação com filtro, erro, atualização depois de gravar o perfil |
 | `radar/format.test.ts` | percentagens a partir do texto da API, truncadas e sem vírgula flutuante |
+| `analyses/analyses.test.tsx` | executar na ficha e abrir a explicação, explicação completa e incompleta, motivo do desfecho, 404, VIEWER sem botão, 422 fora do Simples, Radar atualizado, paginação do histórico |
+| `analyses/format.test.ts` | vigência com fim exclusivo |
 | `app/ErrorPage.test.tsx` | página de erro sem detalhes técnicos |
 | `shared/api/http.test.ts` | erros padronizados, 204, aviso de 401 fora de `/auth/*` |
 | `components/ApiStatus.test.tsx` | estado da API: online, erro do health check e sem resposta |
