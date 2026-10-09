@@ -138,11 +138,10 @@ describe('Perfil tributário (e2e)', () => {
   });
 
   it('recusa meses de referência fora de 1900 a 2099 com 400, não com 500', async () => {
+    // 2099-12 passa no formato, mas está no futuro (D29): ver o teste seguinte.
     const company = await createCompany(prisma, a.firmId);
 
-    for (const referencePeriod of ['1900-01', '2099-12']) {
-      await put(a.admin, company.id, { referencePeriod }).expect(200);
-    }
+    await put(a.admin, company.id, { referencePeriod: '1900-01' }).expect(200);
     for (const referencePeriod of ['0000-01', '1899-12', '2100-01']) {
       const response = await put(a.admin, company.id, {
         referencePeriod,
@@ -151,6 +150,28 @@ describe('Perfil tributário (e2e)', () => {
         expect.objectContaining({ field: 'referencePeriod' }),
       ]);
     }
+  });
+
+  it('recusa um mês de referência no futuro (D29); o mês atual é aceite', async () => {
+    const company = await createCompany(prisma, a.firmId);
+    const now = new Date();
+    const current = now.toISOString().slice(0, 7);
+    const next = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+    )
+      .toISOString()
+      .slice(0, 7);
+
+    await put(a.admin, company.id, { referencePeriod: current }).expect(200);
+    const response = await put(a.admin, company.id, {
+      referencePeriod: next,
+    }).expect(400);
+    expect(response.body.details).toEqual([
+      {
+        field: 'referencePeriod',
+        messages: ['O mês de referência não pode estar no futuro.'],
+      },
+    ]);
   });
 
   it('aceita o maior valor que cabe na coluna e recusa o que não cabe', async () => {

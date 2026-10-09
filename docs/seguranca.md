@@ -36,6 +36,7 @@ As regras valem para todo código novo. Os mecanismos que as verificam automatic
 | Matriz BOLA, inventário de rotas e catálogo do schema (D17) | Implementado (semana 3): [`bola-matrix.ts`](../backend/test/support/bola-matrix.ts), [`route-inventory.e2e-spec.ts`](../backend/test/route-inventory.e2e-spec.ts), [`schema-catalog.e2e-spec.ts`](../backend/test/schema-catalog.e2e-spec.ts) |
 | FKs compostas (D15) | Implementado (semana 3): `tax_profiles` → `companies`; cada tabela nova é verificada pelo catálogo do schema |
 | Arranque recusado em produção com valores de exemplo (D19, S25) | Implementado (semana 3): [`env.validation.ts`](../backend/src/config/env.validation.ts), aplicado também ao seed, que corre antes da API. O `docker compose` local usa `NODE_ENV=development`; a imagem usa `production` por padrão |
+| Catálogo global só de leitura (S11) | Implementado (semana 4): [`tenant-scope.ts`](../backend/src/prisma/tenant-scope.ts) recusa `create`, `update`, `upsert` e `delete` em `TaxRule` e `TaxRuleVersion`; versões publicadas são imutáveis também no banco (trigger, [banco-de-dados.md](banco-de-dados.md#tax_rules-e-tax_rule_versions)) |
 | Papel do banco sem superuser nem DDL (D18, S26) | Pendente: com o deploy público (semana 7, D23) |
 | Endurecimento do deploy | Pendente (semana 7, D23), encontrado na revisão de 2026-10-08: a API só pode ser alcançada através do proxy, porque confia no `X-Forwarded-For` e o rate limit seria contornado (hoje a porta 3000 só está publicada em `127.0.0.1`); CSP e HSTS no nginx para o frontend; Swagger (`/api/docs`) fechado ou protegido em produção; limite de memória do argon2 conforme o fornecedor |
 | `helmet` | Implementado (semana 3): [`app.setup.ts`](../backend/src/app.setup.ts), verificado por [`security-headers.e2e-spec.ts`](../backend/test/security-headers.e2e-spec.ts). Os cabeçalhos da API vêm só do helmet; o nginx define os do frontend |
@@ -59,7 +60,7 @@ Enquanto um mecanismo está pendente, a regra correspondente é verificada na re
 - **S8.** Toda FK entre tabelas do tenant é composta: `(x_id, accounting_firm_id) → x(id, accounting_firm_id)`.
 - **S9.** Toda unicidade de negócio dentro do tenant inclui `accounting_firm_id` (ex.: `UNIQUE (accounting_firm_id, cnpj)`). Uma unicidade global responderia 409 e revelaria dados de outro escritório. Exceções aprovadas: `users.email` é único em todo o sistema, porque o login recebe só email e password ([banco-de-dados.md](banco-de-dados.md#decisões-de-modelagem), D12), e `accounting_firms.cnpj` é único porque identifica o próprio tenant. Nesses casos o 409 é aceite, e toda rota que o possa devolver tem rate limit contra enumeração.
 - **S10.** `ON DELETE RESTRICT` por padrão. `CASCADE` só em filho que não existe sem o pai, com justificativa na migration.
-- **S11.** Tabelas globais (`tax_rules`, `tax_rule_versions`) não têm endpoint de escrita. Mudam só por migration ou seed. O `ADMIN` de um escritório não é administrador da plataforma.
+- **S11.** Tabelas globais (`tax_rules`, `tax_rule_versions`) não têm endpoint de escrita. Mudam só por migration ou seed; a verificação do Prisma recusa escritas nelas pela API. O `ADMIN` de um escritório não é administrador da plataforma.
 
 ### Endpoints e papéis
 
