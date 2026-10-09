@@ -46,6 +46,7 @@ const completed: Analysis = {
     revenue12m: '1500000.00',
     payroll12m: '405000.00',
     referencePeriod: '2026-09',
+    fatorRSubject: true,
   },
   trace: {
     outcome: { status: 'COMPLETED' },
@@ -180,6 +181,41 @@ describe('análises', () => {
 
     expect(await screen.findByText(message)).toBeInTheDocument();
     expect(screen.queryByText(/Dados em falta/)).not.toBeInTheDocument();
+  });
+
+  it('mostra a elegibilidade usada; uma análise anterior à D33 não a mostra', async () => {
+    signedInAs(viewer);
+    const oldInput = { ...completed.input };
+    delete oldInput.fatorRSubject;
+    let current: Analysis = completed;
+    server.use(http.get('/api/v1/analyses/:id', () => HttpResponse.json(current)));
+    const { unmount } = renderRoute(`/analyses/${completed.id}`);
+
+    const input = await screen.findByRole('region', { name: 'Dados usados' });
+    const row = within(input).getByText('Atividade sujeita ao Fator R').parentElement!;
+    expect(within(row).getByText('Sim')).toBeInTheDocument();
+    unmount();
+
+    current = { ...completed, id: 'aaaaaaaa-0000-4000-8000-000000000003', input: oldInput };
+    renderRoute(`/analyses/${current.id}`);
+    const oldSection = await screen.findByRole('region', { name: 'Dados usados' });
+    expect(within(oldSection).queryByText('Atividade sujeita ao Fator R')).not.toBeInTheDocument();
+  });
+
+  it('elegibilidade por confirmar aparece nos dados em falta', async () => {
+    signedInAs(viewer);
+    server.use(
+      http.get('/api/v1/analyses/:id', () =>
+        HttpResponse.json({
+          ...incomplete,
+          input: { ...completed.input, fatorRSubject: null },
+          trace: { ...incomplete.trace, missing: ['fatorRSubject'] },
+        }),
+      ),
+    );
+    renderRoute(`/analyses/${incomplete.id}`);
+
+    expect(await screen.findByText('Dados em falta: Atividade sujeita ao Fator R.')).toBeInTheDocument();
   });
 
   it('análise inexistente ou de outro escritório', async () => {

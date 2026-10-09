@@ -3,7 +3,7 @@ import type { RadarStatus } from '../radar/api';
 import { apiRequest } from '../shared/api/http';
 
 /** Campos obrigatórios do cálculo do Fator R. */
-export type RequiredField = 'taxRegime' | 'revenue12m' | 'payroll12m' | 'referencePeriod';
+export type RequiredField = 'taxRegime' | 'revenue12m' | 'payroll12m' | 'referencePeriod' | 'fatorRSubject';
 
 /** Regra e versão usadas (D30). Datas AAAA-MM-DD; `validUntil` é exclusivo. */
 export interface AnalysisRuleVersion {
@@ -44,6 +44,8 @@ export interface AnalysisInput {
   revenue12m: string | null;
   payroll12m: string | null;
   referencePeriod: string | null;
+  /** Ausente nas análises anteriores à D33. */
+  fatorRSubject?: boolean | null;
 }
 
 /** Raciocínio gravado com a análise (US11). */

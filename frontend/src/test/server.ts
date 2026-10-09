@@ -19,6 +19,7 @@ export const emptyTaxProfile = {
   revenue12m: null,
   payroll12m: null,
   referencePeriod: null,
+  fatorRSubject: null,
   updatedAt: null,
 };
 

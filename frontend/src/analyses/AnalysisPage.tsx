@@ -11,12 +11,13 @@ import { type Analysis, type AnalysisInput, analysisKeys, getAnalysis } from './
 import styles from './Analyses.module.css';
 import { ANALYSIS_STATUS_LABELS, FIELD_LABELS, formatDateTime, formatValidity } from './format';
 
-const INPUT_FIELDS: { key: keyof AnalysisInput; label: string; format(value: string): ReactNode }[] = [
+const INPUT_FIELDS: { key: keyof AnalysisInput; label: string; format(value: never): ReactNode }[] = [
   { key: 'taxRegime', label: 'Regime tributário', format: (v) => REGIME_LABELS[v as keyof typeof REGIME_LABELS] },
   { key: 'cnae', label: 'CNAE principal', format: formatCnae },
   { key: 'revenue12m', label: 'Receita bruta (12 meses)', format: formatMoney },
   { key: 'payroll12m', label: 'Folha de pagamento (12 meses)', format: formatMoney },
   { key: 'referencePeriod', label: 'Mês de referência', format: formatPeriod },
+  { key: 'fatorRSubject', label: 'Atividade sujeita ao Fator R', format: (v: boolean) => (v ? 'Sim' : 'Não') },
 ];
 
 function Result({ analysis }: { analysis: Analysis }) {
@@ -156,10 +157,12 @@ export function AnalysisPage() {
             <dl className={`${styles.card} ${styles.details}`}>
               {INPUT_FIELDS.map(({ key, label, format }) => {
                 const value = analysis.input[key];
+                // Análises anteriores à D33 não têm a elegibilidade: não se mostra.
+                if (value === undefined) return null;
                 return (
                   <div key={key}>
                     <dt>{label}</dt>
-                    <dd>{value === null ? <span className={styles.missing}>Não informado</span> : format(value)}</dd>
+                    <dd>{value === null ? <span className={styles.missing}>Não informado</span> : format(value as never)}</dd>
                   </div>
                 );
               })}
