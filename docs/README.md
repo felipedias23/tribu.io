@@ -13,7 +13,7 @@ Em caso de divergência entre documentos, prevalece o que estiver mais acima na 
 | 2 | [adr/0001-postgresql-prisma.md](adr/0001-postgresql-prisma.md) | Vigente | Justificação da escolha de PostgreSQL com Prisma |
 | 3 | [modelo-dados.md](modelo-dados.md) | Vigente | Diagrama ER e restrições do modelo alvo do MVP |
 | 3 | [user-stories.md](user-stories.md) | Vigente | Backlog do MVP com critérios de aceitação (cartões do Trello) |
-| 3 | [seguranca.md](seguranca.md) | Vigente | Padrão de desenvolvimento seguro (regras S1–S26) |
+| 3 | [seguranca.md](seguranca.md) | Vigente | Padrão de desenvolvimento seguro (regras S1–S27) |
 | 3 | [autenticacao.md](autenticacao.md) | Vigente | Autenticação, sessão, tenant e papéis |
 | 3 | [banco-de-dados.md](banco-de-dados.md) | Vigente | Estrutura atual do banco, migrations e seed |
 | 3 | [frontend.md](frontend.md) | Vigente | Layout base, rotas, acessibilidade e sessão no frontend |

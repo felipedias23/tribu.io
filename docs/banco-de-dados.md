@@ -63,7 +63,7 @@ Todos os campos tributários aceitam `NULL`, que significa **dado ausente**, dif
 | `state` | `char(2)` | uma das 27 UFs (`CHECK`) |
 | `revenue_12m` | `decimal(15,2)` | receita bruta dos 12 meses anteriores ao período (RBT12), ≥ 0 (`CHECK`) |
 | `payroll_12m` | `decimal(15,2)` | folha dos mesmos 12 meses, ≥ 0 (`CHECK`) |
-| `reference_period` | `date` | mês de referência, sempre o 1.º dia (`CHECK`) |
+| `reference_period` | `date` | mês de referência, sempre o 1.º dia (`CHECK`); a API aceita anos de 1900 a 2099 |
 | `created_at`, `updated_at` | `timestamptz(3)` | preenchidos automaticamente |
 
 ### Restrições
@@ -106,6 +106,9 @@ Ficam em [`backend/prisma/migrations/`](../backend/prisma/migrations/) e são ve
 | Migration | Finalidade |
 |---|---|
 | `20260927125723_init_tenants_users` | Enum `role`, tabelas `accounting_firms` e `users`, índices, FK e restrições `CHECK` |
+| `20261003114532_companies` | Tabela `companies`: unicidade do CNPJ no escritório, `UNIQUE (id, accounting_firm_id)` para as FKs compostas e restrições `CHECK` |
+| `20261003114937_companies_legal_name_collation` | Razão social com a collation `pt-BR-x-icu` (ordenação em português) |
+| `20261003150505_tax_profiles` | Enum `tax_regime` e tabela `tax_profiles`, com FK composta para `companies` e restrições `CHECK` |
 
 Comandos (a partir de `backend/`, com o PostgreSQL a correr: `docker compose up -d db`):
 

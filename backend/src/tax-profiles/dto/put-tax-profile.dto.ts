@@ -109,7 +109,7 @@ export class PutTaxProfileDto {
   @ApiPropertyOptional({
     example: '2026-09',
     nullable: true,
-    description: 'Mês (AAAA-MM).',
+    description: 'Mês (AAAA-MM), de 1900 a 2099.',
   })
   @IsOptional()
   @TrimToNull()

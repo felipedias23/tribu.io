@@ -1,6 +1,6 @@
 # Padrão de desenvolvimento seguro
 
-Regras obrigatórias para toda funcionalidade nova do Tribu.io. Resultam da auditoria técnica e de segurança de 2026-09-28 e das decisões D15–D20 ([relatório §2](arquitetura-e-decisoes.md#2-decisões)).
+Regras obrigatórias para toda funcionalidade nova do Tribu.io. Resultam da auditoria técnica e de segurança de 2026-09-28, das decisões D15–D20 e da revisão de fragilidades de 2026-10-08 (D24, D25) ([relatório §2](arquitetura-e-decisoes.md#2-decisões)).
 
 O requisito que orienta todas elas: **um escritório nunca acede, altera nem descobre dados de outro**. O isolamento não depende do frontend; é garantido no backend e no banco.
 
@@ -30,8 +30,8 @@ As regras valem para todo código novo. Os mecanismos que as verificam automatic
 |---|---|
 | `TenantId` vindo da sessão (`@CurrentTenant()`), 404 para outro escritório, testes e2e A/B em `/users` | Implementado (semana 2) |
 | Rate limit no login e registo, `ValidationPipe` com `forbidNonWhitelisted`, testes de sessão e de papéis | Implementado (semana 2) |
-| Verificação de tenant no Prisma (D16) | Implementado (semana 3): [`tenant-scope.ts`](../backend/src/prisma/tenant-scope.ts); import do cliente `unscoped` fora de `auth` bloqueado pelo ESLint (S5). Desde a semana 4 cobre também `AccountingFirm`, que só é lido ou alterado pelo `id` e só é criado no módulo `auth` |
-| Só corpos em JSON | Implementado (semana 4): [`json-only.middleware.ts`](../backend/src/common/middleware/json-only.middleware.ts) responde 415 a corpos que não são JSON. Um formulário HTML de outro site não é lido, o que junta uma defesa contra CSRF ao `SameSite=Strict` |
+| Verificação de tenant no Prisma (D16) | Implementado (semana 3): [`tenant-scope.ts`](../backend/src/prisma/tenant-scope.ts); import do cliente `unscoped` fora de `auth` bloqueado pelo ESLint (S5). Desde a semana 4 cobre também `AccountingFirm`, que só é lido ou alterado pelo `id` e só é criado no módulo `auth` (D25) |
+| Só corpos em JSON (D24, S27) | Implementado (semana 4): [`json-only.middleware.ts`](../backend/src/common/middleware/json-only.middleware.ts) responde 415 a corpos que não são JSON. Um formulário HTML de outro site não é lido, o que junta uma defesa contra CSRF ao `SameSite=Strict` |
 | Logs de erros 5xx sem valores (S21) | Implementado (semana 4): [`http-exception.filter.ts`](../backend/src/common/filters/http-exception.filter.ts) regista só o nome, o código e o stack dos erros do Prisma, cuja mensagem traz os argumentos da query |
 | Matriz BOLA, inventário de rotas e catálogo do schema (D17) | Implementado (semana 3): [`bola-matrix.ts`](../backend/test/support/bola-matrix.ts), [`route-inventory.e2e-spec.ts`](../backend/test/route-inventory.e2e-spec.ts), [`schema-catalog.e2e-spec.ts`](../backend/test/schema-catalog.e2e-spec.ts) |
 | FKs compostas (D15) | Implementado (semana 3): `tax_profiles` → `companies`; cada tabela nova é verificada pelo catálogo do schema |
@@ -47,7 +47,7 @@ Enquanto um mecanismo está pendente, a regra correspondente é verificada na re
 ### Tenant
 
 - **S1.** O tenant vem só de `@CurrentTenant()`. Nenhum DTO, query ou rota contém `accountingFirmId` ou `tenantId`. `as TenantId` é proibido fora do `SessionService`.
-- **S2.** Todo método de service que toca dados do tenant recebe `tenantId: TenantId` como primeiro parâmetro e usa-o em **todo** `where` e `data`, incluindo `update`, `delete`, `count`, `aggregate`, `groupBy` e as operações `*Many`. O filtro fica no nível superior do `where`, nunca dentro de `OR`.
+- **S2.** Todo método de service que toca dados do tenant recebe `tenantId: TenantId` como primeiro parâmetro e usa-o em **todo** `where` e `data`, incluindo `update`, `delete`, `count`, `aggregate`, `groupBy` e as operações `*Many`. O filtro fica no nível superior do `where`, nunca dentro de `OR`. O próprio escritório (`AccountingFirm`) é lido ou alterado só pelo seu `id` (D25).
 - **S3.** Recurso de outro escritório responde **404**, com a mesma mensagem de um ID inexistente. Nunca 403 nem mensagem diferente.
 - **S4.** Rotas aninhadas (`/companies/:id/…`) verificam o pai com `CompaniesService.findOwnedOrThrow(tenantId, companyId)` e filtram também os filhos por tenant.
 - **S5.** Consultas sem tenant (cliente `unscoped`) só existem no módulo `auth` (login por email, sessão por id), cada uma com comentário a justificar.
@@ -66,8 +66,9 @@ Enquanto um mecanismo está pendente, a regra correspondente é verificada na re
 - **S12.** Toda rota exige sessão. Um `@Public()` novo obriga a atualizar a allowlist do teste de inventário de rotas.
 - **S13.** Toda rota de escrita autenticada (sem `@Public()`) declara `@Roles(...)`, mesmo que liste todos os papéis. A matriz de papéis de cada funcionalidade é aprovada antes da implementação.
 - **S14.** Endpoints administrativos são `@Roles(Role.ADMIN)`, têm teste 403 para `ANALYST` e `VIEWER` e são auditados quando o `AuditLog` existir.
-- **S15.** O service mapeia os campos do DTO um a um; nunca `data: dto`. Listagens são paginadas com `limit` máximo (100) e ordenação por lista fechada de campos.
+- **S15.** O service mapeia os campos do DTO um a um; nunca `data: dto`. Listagens são paginadas com `limit` máximo (100), página máxima limitada (o deslocamento tem de caber no banco) e ordenação por lista fechada de campos. Uma pesquisa com `contains` escapa `%`, `_` e `\`, que o Prisma passaria ao `LIKE` como curingas.
 - **S16.** Respostas usam `select` explícito; nunca devolvem o registo inteiro do Prisma.
+- **S27.** Corpos de pedido só em JSON (D24): o [middleware](../backend/src/common/middleware/json-only.middleware.ts) responde 415 aos outros tipos. Nenhuma rota aceita formulários HTML. Um upload (S17) que precise de `multipart/form-data` é uma exceção aprovada com a sua funcionalidade.
 
 ### Uploads, jobs e integrações
 
@@ -78,7 +79,7 @@ Enquanto um mecanismo está pendente, a regra correspondente é verificada na re
 
 ### Dados sensíveis e logs
 
-- **S21.** Nunca registar em log password, cookie, JWT, cabeçalho `Authorization` nem o corpo de pedidos de importação ou de perfil tributário. Erros 5xx registam o código do erro, não os valores.
+- **S21.** Nunca registar em log password, cookie, JWT, cabeçalho `Authorization` nem o corpo de pedidos de importação ou de perfil tributário. Erros 5xx registam o código do erro, não os valores. Nos erros do Prisma, cuja mensagem traz os argumentos da query, o filtro de erros regista só o nome, o código e o stack.
 - **S22.** Todo dado sensível novo tem finalidade descrita, papéis que o podem ler, prazo de retenção e decisão sobre auditoria. O `AuditLog` guarda ids e nomes de campos alterados, não os valores fiscais.
 - **S23.** Seeds e testes usam só dados fictícios: emails em `.example`, nomes claramente inventados.
 
@@ -100,6 +101,7 @@ Fazem parte da [Definition of Done](CLAUDE.md#5-definition-of-done-dod).
 | Matriz BOLA | e2e | Um pedido do escritório A a um `:id` do B (GET, PATCH, PUT, DELETE) não responde 404 igual ao de um ID inexistente, ou altera dados do B |
 | Inventário de rotas | e2e | Surge um `@Public()` fora da allowlist ou uma rota com `:id` sem linha na matriz BOLA |
 | Catálogo do schema | e2e | Uma tabela do tenant não tem `accounting_firm_id NOT NULL`, ou uma FK entre tabelas do tenant não é composta |
+| Corpo só em JSON | e2e | Um formulário, multipart ou texto (com `Content-Length` ou em chunks) não recebe 415, ou chega a gravar dados |
 | Verificação de tenant no Prisma | unit | Uma query sobre tabela do tenant sem `accountingFirmId` (ou só dentro de `OR`), um `create` sem tenant, ou uma query a `AccountingFirm` sem `id` no `where`, não é recusada |
 | Papéis | e2e | Um papel sem permissão não recebe 403 numa rota de escrita ou administrativa |
 | Oráculo de unicidade | e2e | Criar num escritório um registo com a mesma chave de negócio de outro escritório (ex.: CNPJ de uma empresa) não é aceite. Não se aplica às exceções da S9 |
