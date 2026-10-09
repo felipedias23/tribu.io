@@ -14,6 +14,8 @@ O Tribu.io funciona como uma camada de inteligência sobre a carteira de empresa
 
 **Semana 3 — isolamento entre escritórios, empresas e perfil tributário.** Antes da primeira tabela de negócio, o isolamento entre escritórios passou a ter quatro camadas: o escritório vem sempre da sessão; o banco usa FKs compostas com o tenant; o Prisma recusa qualquer query sem o escritório no `where`; e um recurso de outro escritório responde 404, igual a um inexistente. A matriz BOLA, o inventário de rotas e o catálogo do schema verificam estas regras em cada PR ([segurança](docs/seguranca.md)). Com isso vieram as empresas (cadastro, edição, lista paginada e pesquisa por nome ou CNPJ, incluindo o CNPJ alfanumérico) e o perfil tributário de cada empresa, em que um dado em falta fica como "Não informado" e nunca vira zero. O seed passou a ter 12 empresas e 10 perfis tributários. A API recusa arrancar em produção com valores de exemplo e envia cabeçalhos de segurança (`helmet`). Um teste de mutação (43 bugs inseridos de propósito, todos detetados) confirmou que os testes apanham regressões. O Tax Radar, as importações e a auditoria continuam como páginas "Em construção".
 
+**Semana 4 — Tax Engine, análises e Tax Radar (Checkpoint 2).** A primeira regra tributária é o Fator R do Simples Nacional: a tabela dos Anexos III e V foi conferida no texto da LC 123/2006 e está numa versão publicada, com vigência, base legal e checksum, que o banco não deixa alterar nem sobrepor a outra ([§3.4](docs/arquitetura-e-decisoes.md#34-tax-engine-reprodutibilidade)). O cálculo é uma função pura com aritmética decimal: 28% exatos ficam no Anexo III mesmo quando a vírgula flutuante daria 27,999…%, e nenhum valor em falta é inventado. Cada análise grava a entrada, a versão da regra e o raciocínio, não muda depois e pode ser reproduzida; fora do Simples Nacional a regra não se aplica (D31). O Tax Radar, agora a página inicial, classifica a carteira em cinco estados a cada pedido, ordena-a por prioridade e explica cada sinal em português; a explicação de uma análise mostra o cálculo passo a passo, os dados usados e em falta, as premissas e a regra aplicada. Funciona em cartões no telemóvel. O seed tem 30 empresas e cada escritório demonstra os cinco estados. Antes de começar, uma revisão de fragilidades corrigiu cinco pontos (logs sem valores fiscais, erros 500 que deviam ser 400, curingas na pesquisa, verificação de tenant no próprio escritório e corpos só em JSON). Ao longo da semana, 194 bugs inseridos de propósito foram todos detetados pelos testes.
+
 ## Arquitetura
 
 Monólito modular com três serviços em containers separados:
@@ -33,7 +35,7 @@ Decisões e modelo de dados planejado: [arquitetura e decisões](docs/arquitetur
 | Camada | Tecnologias |
 | --- | --- |
 | Frontend | React 19, TypeScript, Vite, React Router, Vitest, Testing Library, MSW |
-| Backend | NestJS 11, TypeScript, REST, Swagger, class-validator, JWT (`@nestjs/jwt`), argon2, Jest, Supertest |
+| Backend | NestJS 11, TypeScript, REST, Swagger, class-validator, Zod, JWT (`@nestjs/jwt`), argon2, decimal.js, Jest, Supertest |
 | Banco | PostgreSQL 17, Prisma 7 |
 | Infra | Docker, Docker Compose, nginx, GitHub Actions |
 
@@ -44,17 +46,21 @@ Decisões e modelo de dados planejado: [arquitetura e decisões](docs/arquitetur
 ├── backend/              API NestJS
 │   ├── prisma/           schema.prisma e migrations/
 │   ├── src/
+│   │   ├── analyses/     execução e consulta das análises (US09, US15)
 │   │   ├── auth/         registo, login, sessão, guards e decorators
 │   │   ├── common/       formato de erros e validação
 │   │   ├── companies/    empresas do escritório e validação do CNPJ
 │   │   ├── config/       validação das variáveis de ambiente
 │   │   ├── health/       GET /api/v1/health
 │   │   ├── prisma/       ligação ao PostgreSQL, verificação de tenant e seed
+│   │   ├── radar/        classificador do Tax Radar e GET /radar (US10)
+│   │   ├── tax-calculations/ Tax Engine: evaluator do Fator R, escolha da versão
 │   │   ├── tax-profiles/ perfil tributário de cada empresa
+│   │   ├── tax-rules/    catálogo de regras, parâmetros e checksum
 │   │   └── users/        utilizadores do escritório
-│   └── test/             testes e2e (API, banco, isolamento entre tenants, matriz BOLA, cabeçalhos)
+│   └── test/             testes e2e (API, banco, isolamento entre tenants, matriz BOLA, regras, Radar, análises)
 ├── frontend/             aplicação React
-│   └── src/              app/ (rotas e layout), auth/ (sessão e páginas), companies/ (empresas e perfil tributário), shared/
+│   └── src/              app/ (rotas e layout), auth/ (sessão e páginas), companies/ (empresas e perfil tributário), radar/, analyses/, shared/
 ├── infra/docker/         Dockerfiles e nginx.conf
 ├── infra/scripts/        entrypoint do backend (migrations + seed)
 ├── docs/                 especificações do projeto
@@ -110,7 +116,7 @@ O seed cria dois escritórios fictícios, cada um com uma conta por papel. A pas
 | Beta Contabilidade | `analista@beta.tribu.example` | ANALYST |
 | Beta Contabilidade | `consulta@beta.tribu.example` | VIEWER |
 
-Entre em <http://localhost:8080/login> com uma destas contas, ou crie um escritório novo em `/register`. Depois do login, a aplicação abre no Tax Radar.
+Entre em <http://localhost:8080/login> com uma destas contas, ou crie um escritório novo em `/register`. Depois do login, a aplicação abre no Tax Radar. Cada escritório tem 15 empresas fictícias que cobrem os cinco estados do Radar; as contas `ADMIN` e `ANALYST` podem executar análises na ficha de cada empresa.
 
 ## Testes
 
