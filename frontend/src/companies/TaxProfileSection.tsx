@@ -8,7 +8,7 @@ import { radarKeys } from '../radar/api';
 
 type Field = Exclude<keyof TaxProfile, 'updatedAt'>;
 
-const FIELDS: { key: Field; label: string; format(value: string): ReactNode }[] = [
+const FIELDS: { key: Field; label: string; format(value: never): ReactNode }[] = [
   { key: 'taxRegime', label: 'Regime tributário', format: (v) => REGIME_LABELS[v as keyof typeof REGIME_LABELS] },
   { key: 'cnae', label: 'CNAE principal', format: formatCnae },
   { key: 'city', label: 'Município', format: (v) => v },
@@ -16,6 +16,7 @@ const FIELDS: { key: Field; label: string; format(value: string): ReactNode }[] 
   { key: 'revenue12m', label: 'Receita bruta (12 meses)', format: formatMoney },
   { key: 'payroll12m', label: 'Folha de pagamento (12 meses)', format: formatMoney },
   { key: 'referencePeriod', label: 'Mês de referência', format: formatPeriod },
+  { key: 'fatorRSubject', label: 'Atividade sujeita ao Fator R', format: (v: boolean) => (v ? 'Sim' : 'Não') },
 ];
 
 /**
@@ -81,7 +82,7 @@ export function TaxProfileSection({ companyId, canEdit }: { companyId: string; c
               return (
                 <div key={key}>
                   <dt>{label}</dt>
-                  <dd>{value === null ? <span className={styles.missing}>Não informado</span> : format(value)}</dd>
+                  <dd>{value === null ? <span className={styles.missing}>Não informado</span> : format(value as never)}</dd>
                 </div>
               );
             })}

@@ -71,6 +71,8 @@ export interface TaxProfile {
   revenue12m: string | null;
   payroll12m: string | null;
   referencePeriod: string | null;
+  /** Atividade sujeita ao Fator R; null = não informado (D33). */
+  fatorRSubject: boolean | null;
   updatedAt: string | null;
 }
 

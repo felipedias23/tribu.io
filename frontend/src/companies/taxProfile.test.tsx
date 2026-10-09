@@ -24,6 +24,7 @@ const partialProfile: TaxProfile = {
   revenue12m: '480000.00',
   payroll12m: null,
   referencePeriod: '2026-09',
+  fatorRSubject: true,
   updatedAt: '2026-10-03T12:00:00.000Z',
 };
 
@@ -56,7 +57,7 @@ describe('perfil tributário', () => {
     openCompany({ ...demoUser, role: 'VIEWER' }, emptyTaxProfile);
 
     expect(await screen.findByText('O perfil tributário ainda não foi preenchido.')).toBeInTheDocument();
-    expect(within(section()).getAllByText('Não informado')).toHaveLength(7);
+    expect(within(section()).getAllByText('Não informado')).toHaveLength(8);
     expect(screen.queryByRole('button', { name: 'Preencher perfil' })).not.toBeInTheDocument();
   });
 
@@ -90,6 +91,7 @@ describe('perfil tributário', () => {
       revenue12m: '480000.00',
       payroll12m: null,
       referencePeriod: '2026-09',
+      fatorRSubject: null,
     });
   });
 
@@ -119,6 +121,7 @@ describe('perfil tributário', () => {
     await userEvent.selectOptions(screen.getByLabelText('UF'), '');
     await userEvent.clear(screen.getByLabelText('Receita bruta dos últimos 12 meses (R$)'));
     fireEvent.change(screen.getByLabelText('Mês de referência'), { target: { value: '' } });
+    await userEvent.selectOptions(screen.getByLabelText('Atividade sujeita ao Fator R'), '');
     await userEvent.click(screen.getByRole('button', { name: 'Guardar perfil' }));
 
     expect(await screen.findByText(/Dados em falta/)).toBeInTheDocument();
@@ -130,6 +133,7 @@ describe('perfil tributário', () => {
       revenue12m: null,
       payroll12m: null,
       referencePeriod: null,
+      fatorRSubject: null,
     });
   });
 
@@ -170,5 +174,74 @@ describe('perfil tributário', () => {
     expect(await screen.findByText(/não negativo/)).toBeInTheDocument();
     expect(payroll).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByLabelText('Receita bruta dos últimos 12 meses (R$)')).toHaveValue('480.000,00');
+  });
+
+  describe('atividade sujeita ao Fator R (D33)', () => {
+    it.each([
+      [true, 'Sim'],
+      [false, 'Não'],
+    ] as const)('mostra %s como "%s"', async (fatorRSubject, text) => {
+      openCompany(demoUser, { ...partialProfile, fatorRSubject });
+
+      const section = await screen.findByRole('region', { name: 'Perfil tributário' });
+      const row = (await within(section).findByText('Atividade sujeita ao Fator R')).parentElement!;
+      expect(within(row).getByText(text)).toBeInTheDocument();
+    });
+
+    it('a dúvida fica como dado em falta, com a ajuda da lei', async () => {
+      openCompany(demoUser, { ...partialProfile, fatorRSubject: null });
+
+      expect(
+        await screen.findByText(/Dados em falta: .*Atividade sujeita ao Fator R\./),
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', { name: 'Editar perfil' }));
+      const field = screen.getByLabelText('Atividade sujeita ao Fator R');
+      expect(field).toHaveValue('');
+      expect(field).toHaveAccessibleDescription(/§§ 5º-I e 5º-M/);
+    });
+
+    it.each([true, false])(
+      'editar outro campo mantém a elegibilidade já gravada (%s)',
+      async (fatorRSubject) => {
+        openCompany(demoUser, { ...partialProfile, fatorRSubject });
+        let body: unknown;
+        server.use(
+          http.put(`/api/v1/companies/${company.id}/tax-profile`, async ({ request }) => {
+            body = await request.json();
+            return HttpResponse.json({ ...partialProfile, fatorRSubject, updatedAt: '2026-10-06T12:00:00.000Z' });
+          }),
+        );
+
+        await userEvent.click(await screen.findByRole('button', { name: 'Editar perfil' }));
+        expect(screen.getByLabelText('Atividade sujeita ao Fator R')).toHaveValue(String(fatorRSubject));
+        await userEvent.type(screen.getByLabelText('Folha de pagamento dos últimos 12 meses (R$)'), '100.000,00');
+        await userEvent.click(screen.getByRole('button', { name: 'Guardar perfil' }));
+        await screen.findByRole('button', { name: 'Editar perfil' });
+
+        expect(body).toMatchObject({ payroll12m: '100000.00', fatorRSubject });
+      },
+    );
+
+    it('escolher "Sim" ou "Não" envia true ou false', async () => {
+      openCompany(demoUser, partialProfile);
+      const bodies: unknown[] = [];
+      server.use(
+        http.put(`/api/v1/companies/${company.id}/tax-profile`, async ({ request }) => {
+          const body = (await request.json()) as object;
+          bodies.push(body);
+          return HttpResponse.json({ ...partialProfile, ...body, updatedAt: '2026-10-06T12:00:00.000Z' });
+        }),
+      );
+
+      for (const option of ['false', 'true']) {
+        await userEvent.click(await screen.findByRole('button', { name: 'Editar perfil' }));
+        await userEvent.selectOptions(screen.getByLabelText('Atividade sujeita ao Fator R'), option);
+        await userEvent.click(screen.getByRole('button', { name: 'Guardar perfil' }));
+      }
+      await screen.findByRole('button', { name: 'Editar perfil' });
+
+      expect(bodies.map((b) => (b as { fatorRSubject: unknown }).fatorRSubject)).toEqual([false, true]);
+    });
   });
 });

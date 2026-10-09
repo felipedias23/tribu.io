@@ -61,6 +61,8 @@ Todas as secções aparecem para todos os papéis (decisão D21). Para restringi
 
 No perfil tributário, `null` é dado ausente e nunca é mostrado nem enviado como zero. Cada campo ausente aparece como *Não informado*, e a seção lista o que falta. No formulário, um campo vazio é enviado como `null`. Os valores em reais são escritos no formato brasileiro (`1.200.000,00`) e convertidos para o formato da API (`"1200000.00"`) antes do envio.
 
+A elegibilidade ao Fator R (D33) é uma lista com *Não informado*, *Sim* e *Não*, com a ajuda dos §§ 5º-I e 5º-M ligada ao campo (`aria-describedby`). *Não informado* é enviado como `null` e o Radar pede a confirmação; editar outro campo mantém o valor já gravado. Na explicação de uma análise, a elegibilidade só aparece nas análises posteriores à D33.
+
 ## Layout (mobile-first)
 
 | | Telemóvel (< 48rem / 768px) | Desktop (≥ 48rem) |
@@ -101,7 +103,7 @@ Os estilos base são os do telemóvel; o desktop aplica-se com `@media (min-widt
 | `app/navigation.test.ts` | secções por papel |
 | `companies/companies.test.tsx` | lista, pesquisa, paginação, cadastro com erro por campo, edição, VIEWER sem ações, 404, cache limpo ao sair |
 | `companies/cnpj.test.ts` | máscara do CNPJ numérico e alfanumérico |
-| `companies/taxProfile.test.tsx` | perfil com dados ausentes, perfil vazio, VIEWER sem ações, preenchimento e erro por campo |
+| `companies/taxProfile.test.tsx` | perfil com dados ausentes, perfil vazio, VIEWER sem ações, preenchimento e erro por campo, elegibilidade ao Fator R (mostrar, ajuda, enviar, manter ao editar) |
 | `companies/taxProfileFormat.test.ts` | máscara do CNAE, valores em reais e mês de referência |
 | `radar/radar.test.tsx` | estado, motivo e cálculo por empresa, ordem da API, resumo e filtro no URL, paginação com filtro, erro, atualização depois de gravar o perfil |
 | `radar/format.test.ts` | percentagens a partir do texto da API, truncadas e sem vírgula flutuante |

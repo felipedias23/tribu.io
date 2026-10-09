@@ -8,6 +8,14 @@ import { formatCnae, inputToMoney, moneyToInput, REGIME_LABELS, STATES } from '.
 
 const NOT_INFORMED = { value: '', label: 'Não informado' };
 
+/** "true"/"false" do formulário; vazio é não informado (D20). */
+function toBoolean(value: string | null): boolean | null {
+  return value === null ? null : value === 'true';
+}
+
+const FATOR_R_HINT =
+  'O Fator R só se aplica às atividades de serviços listadas na LC 123/2006, art. 18, §§ 5º-I e 5º-M. Na dúvida, deixe como não informado: o Tax Radar pede a confirmação em vez de presumir.';
+
 interface TaxProfileFormProps {
   profile: TaxProfile;
   onSubmit(input: TaxProfileInput): Promise<void>;
@@ -28,6 +36,7 @@ export function TaxProfileForm({ profile, onSubmit, onCancel }: TaxProfileFormPr
       revenue12m: inputToMoney(String(form.get('revenue12m'))),
       payroll12m: inputToMoney(String(form.get('payroll12m'))),
       referencePeriod: text('referencePeriod'),
+      fatorRSubject: toBoolean(text('fatorRSubject')),
     });
   });
 
@@ -94,6 +103,14 @@ export function TaxProfileForm({ profile, onSubmit, onCancel }: TaxProfileFormPr
         type="month"
         defaultValue={profile.referencePeriod ?? ''}
         errors={fieldErrors('referencePeriod')}
+      />
+      <SelectField
+        label="Atividade sujeita ao Fator R"
+        name="fatorRSubject"
+        defaultValue={profile.fatorRSubject === null ? '' : String(profile.fatorRSubject)}
+        options={[NOT_INFORMED, { value: 'true', label: 'Sim' }, { value: 'false', label: 'Não' }]}
+        hint={FATOR_R_HINT}
+        errors={fieldErrors('fatorRSubject')}
       />
       <div className={styles.actions}>
         <button type="submit" className={styles.primaryButton} disabled={submitting}>

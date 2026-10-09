@@ -5,6 +5,7 @@ export const FIELD_LABELS: Record<RequiredField, string> = {
   revenue12m: 'Receita bruta (12 meses)',
   payroll12m: 'Folha de pagamento (12 meses)',
   referencePeriod: 'Mês de referência',
+  fatorRSubject: 'Atividade sujeita ao Fator R',
 };
 
 export const ANALYSIS_STATUS_LABELS = {
