@@ -72,7 +72,7 @@ Módulos: `common`, `config`, `prisma`, `auth`, `users`, `accounting-firms`, `co
 - Controllers: validação de DTO, autorização, delegação.
 - Services: orquestração; recebem sempre `tenantId`.
 - Tax Engine e classificador do Radar: funções puras (sem I/O, sem Nest/Prisma).
-- Dependências: `@nestjs/config` + `zod`, `class-validator`, `@nestjs/swagger`, `@nestjs/jwt` (sem `passport-jwt`, D10), `argon2`, `@nestjs/throttler`, `helmet`, `cookie-parser`, `nestjs-pino`, `exceljs`, `csv-parse`, `supertest` (dev).
+- Dependências: `@nestjs/config` + `zod`, `class-validator`, `@nestjs/swagger`, `@nestjs/jwt` (sem `passport-jwt`, D10), `argon2`, `@nestjs/throttler`, `helmet`, `cookie-parser`, `nestjs-pino`, `exceljs`, `csv-parse`, `decimal.js` (aritmética do Tax Engine), `supertest` (dev).
 
 ### 3.3 Multi-tenancy
 
@@ -93,6 +93,13 @@ RLS do PostgreSQL fica como endurecimento futuro, com gatilhos definidos em [seg
 - Seleção pela versão `PUBLISHED` vigente no período; constraint `EXCLUDE` impede sobreposição; sem versão vigente → `REVISAR_REGRA`.
 - `Analysis` é imutável e grava snapshot de entrada, versão da regra, checksum dos parâmetros, versão do engine, resultado, trace, ausências, premissas, executor e data.
 - Teste de replay garante resultado idêntico. Dados ausentes → `INCOMPLETE`; nada é inventado. Nenhum LLM participa.
+
+Implementação (semana 4):
+
+- Evaluator `SIMPLES_FATOR_R@1`, registo por chave e escolha da versão vigente em [`tax-calculations/`](../backend/src/tax-calculations/); classificador do Radar em [`radar-classifier.ts`](../backend/src/radar/radar-classifier.ts). Funções puras: o mês atual entra como parâmetro.
+- Aritmética com `decimal.js` (40 dígitos, arredondamento metade para cima). O Fator R guarda a precisão completa; a alíquota efetiva tem 4 casas (0,1303 = 13,03%). Os textos da explicação truncam o Fator R, para um valor abaixo do limiar nunca aparecer igual a ele.
+- Resultados do evaluator: `COMPLETED`; `INCOMPLETE` (lista o que falta); `NOT_COMPUTABLE` (RBT12 zero ou acima do limite); `NOT_APPLICABLE` (fora do Simples Nacional). Cada um traz o trace e as premissas.
+- `ENGINE_VERSION` (hoje `1.0.0`) é gravado em cada análise e muda quando um evaluator muda resultados.
 
 #### 3.4.1 Parâmetros da versão 1 (D28)
 
