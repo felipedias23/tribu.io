@@ -179,4 +179,4 @@ erDiagram
 - Toda entidade do tenant tem `accountingFirmId`, incluindo as tabelas filhas (D15); `TaxRule` e `TaxRuleVersion` são catálogo global.
 - `Analysis` é imutável: uma nova execução cria um novo registo.
 - `AnalysisInput` da especificação é guardado como `inputSnapshot` (JSONB) em `Analysis` (decisão D6).
-- O estado do Tax Radar é derivado (não é tabela); `Analysis.radarStatus` guarda o estado calculado em cada execução.
+- O estado do Tax Radar é derivado (não é tabela) e calculado a cada pedido (decisão D26); `Analysis.radarStatus` guarda o estado no momento de cada execução, como histórico.

@@ -106,6 +106,9 @@ Ficam em [`backend/prisma/migrations/`](../backend/prisma/migrations/) e são ve
 | Migration | Finalidade |
 |---|---|
 | `20260927125723_init_tenants_users` | Enum `role`, tabelas `accounting_firms` e `users`, índices, FK e restrições `CHECK` |
+| `20261003114532_companies` | Tabela `companies`: unicidade do CNPJ no escritório, `UNIQUE (id, accounting_firm_id)` para as FKs compostas e restrições `CHECK` |
+| `20261003114937_companies_legal_name_collation` | Razão social com a collation `pt-BR-x-icu` (ordenação em português) |
+| `20261003150505_tax_profiles` | Enum `tax_regime` e tabela `tax_profiles`, com FK composta para `companies` e restrições `CHECK` |
 
 Comandos (a partir de `backend/`, com o PostgreSQL a correr: `docker compose up -d db`):
 

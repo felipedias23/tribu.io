@@ -120,10 +120,11 @@ Acrescentar colegas ao escritório é a US17 (decisão D22).
 
 **Como** contador, **quero** executar a análise do Fator R do Simples Nacional **para** saber se a empresa se enquadra no Anexo III ou V e qual a alíquota efetiva.
 
-- [ ] Usa a versão da regra publicada e vigente no período de referência.
+- [ ] Usa a versão da regra publicada e vigente no mês de referência (parâmetros na [§3.4.1](arquitetura-e-decisoes.md#341-parâmetros-da-versão-1-d28)).
 - [ ] Sem dados obrigatórios, a análise fica `INCOMPLETE` e lista o que falta.
 - [ ] A análise guarda snapshot da entrada, versão da regra, checksum e trace; é imutável.
 - [ ] Reexecutar com a mesma entrada e versão produz resultado idêntico (teste de replay).
+- [ ] `ADMIN` e `ANALYST` executam; `VIEWER` consulta e recebe 403 ao executar (decisão D27).
 - [ ] Nenhum LLM participa no cálculo.
 
 ## Tax Radar
@@ -132,8 +133,8 @@ Acrescentar colegas ao escritório é a US17 (decisão D22).
 
 **Como** contador, **quero** ver a carteira classificada por prioridade **para** saber onde olhar primeiro.
 
-- [ ] Cada empresa aparece com um estado: `DADOS_INCOMPLETOS`, `REVISAR_REGRA`, `REQUER_ANALISE`, `OPORTUNIDADE_PARA_AVALIAR` ou `NORMAL`.
-- [ ] Ordenação por pontuação de prioridade determinística.
+- [ ] Cada empresa aparece com um estado: `DADOS_INCOMPLETOS`, `REVISAR_REGRA`, `REQUER_ANALISE`, `OPORTUNIDADE_PARA_AVALIAR` ou `NORMAL`, calculado no pedido a partir do perfil atual (decisões D26 e D29).
+- [ ] Ordenação por pontuação de prioridade determinística (decisão D30).
 - [ ] Resumo com a contagem por estado.
 - [ ] No telemóvel, o Radar aparece em cartões.
 
@@ -142,7 +143,7 @@ Acrescentar colegas ao escritório é a US17 (decisão D22).
 **Como** contador, **quero** ver a explicação de cada sinal do Radar **para** confiar na recomendação e decidir por mim.
 
 - [ ] Cada sinal mostra motivo, regra e versão usadas, dados considerados, ausências e premissas.
-- [ ] A página da análise tem link para a empresa e para a versão da regra.
+- [ ] A página da análise tem link para a empresa e mostra código, versão, vigência e fonte da regra (decisão D30; a página de versões é extra).
 
 ## Importação
 
