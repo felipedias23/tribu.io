@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Prisma } from '../generated/prisma/client';
+import { Decimal } from 'decimal.js';
 
 export const SIMPLES_FATOR_R_CODE = 'SIMPLES_FATOR_R';
 export const SIMPLES_FATOR_R_EVALUATOR = 'SIMPLES_FATOR_R@1';
@@ -47,7 +47,7 @@ type FatorRParametersShape = z.infer<typeof fatorRParametersShape>;
  */
 export const fatorRParametersSchema = fatorRParametersShape.pipe(
   z.custom<FatorRParametersShape>().superRefine((parameters, ctx) => {
-    const d = (value: string) => new Prisma.Decimal(value);
+    const d = (value: string) => new Decimal(value);
     const one = d('1');
 
     for (const key of ['threshold', 'opportunityMargin'] as const) {
