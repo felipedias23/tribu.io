@@ -4,8 +4,15 @@ import { createTestPrisma } from './support/prisma';
 /**
  * Tabelas fora do tenant. `accounting_firms` é o próprio tenant. Acrescentar
  * uma tabela aqui exige justificação no PR (ex.: catálogo global, regra S11).
+ * `tax_rules` e `tax_rule_versions`: catálogo global de regras tributárias,
+ * igual para todos os escritórios e só de leitura pela API (§3.4, S11).
  */
-const GLOBAL_TABLES = ['_prisma_migrations', 'accounting_firms'];
+const GLOBAL_TABLES = [
+  '_prisma_migrations',
+  'accounting_firms',
+  'tax_rules',
+  'tax_rule_versions',
+];
 
 interface ForeignKey {
   name: string;

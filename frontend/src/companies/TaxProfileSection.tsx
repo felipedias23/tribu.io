@@ -4,6 +4,7 @@ import { companyKeys, getTaxProfile, putTaxProfile, type TaxProfile, type TaxPro
 import styles from './Companies.module.css';
 import { TaxProfileForm } from './TaxProfileForm';
 import { formatCnae, formatMoney, formatPeriod, REGIME_LABELS } from './taxProfileFormat';
+import { radarKeys } from '../radar/api';
 
 type Field = Exclude<keyof TaxProfile, 'updatedAt'>;
 
@@ -32,6 +33,8 @@ export function TaxProfileSection({ companyId, canEdit }: { companyId: string; c
   async function onSubmit(input: TaxProfileInput) {
     const saved = await putTaxProfile(companyId, input);
     queryClient.setQueryData(companyKeys.taxProfile(companyId), saved);
+    // O estado do Radar é calculado a partir destes dados (D26).
+    await queryClient.invalidateQueries({ queryKey: radarKeys.all, refetchType: 'none' });
     setEditing(false);
   }
 

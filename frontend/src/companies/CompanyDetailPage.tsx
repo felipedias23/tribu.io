@@ -10,6 +10,7 @@ import styles from './Companies.module.css';
 import { CompanyForm } from './CompanyForm';
 import { canEditCompanies } from './permissions';
 import { TaxProfileSection } from './TaxProfileSection';
+import { radarKeys } from '../radar/api';
 
 const dateFormat = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' });
 
@@ -30,6 +31,8 @@ export function CompanyDetailPage() {
     const updated = await updateCompany(id, input);
     queryClient.setQueryData(companyKeys.detail(id), updated);
     await queryClient.invalidateQueries({ queryKey: companyKeys.all, refetchType: 'none' });
+    // O estado do Radar é calculado a partir destes dados (D26).
+    await queryClient.invalidateQueries({ queryKey: radarKeys.all, refetchType: 'none' });
     setEditing(false);
   }
 
