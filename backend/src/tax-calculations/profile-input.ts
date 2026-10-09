@@ -8,6 +8,7 @@ export const PROFILE_INPUT_SELECT = {
   revenue12m: true,
   payroll12m: true,
   referencePeriod: true,
+  fatorRSubject: true,
 } satisfies Prisma.TaxProfileSelect;
 
 type ProfileRow = Prisma.TaxProfileGetPayload<{
@@ -23,6 +24,7 @@ export function toFatorRInput(profile: ProfileRow | null): FatorRInput | null {
     revenue12m: profile.revenue12m?.toFixed(2) ?? null,
     payroll12m: profile.payroll12m?.toFixed(2) ?? null,
     referencePeriod: profile.referencePeriod?.toISOString().slice(0, 7) ?? null,
+    fatorRSubject: profile.fatorRSubject,
   };
 }
 

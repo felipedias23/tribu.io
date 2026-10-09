@@ -3,6 +3,8 @@ import { Decimal } from 'decimal.js';
 
 export const SIMPLES_FATOR_R_CODE = 'SIMPLES_FATOR_R';
 export const SIMPLES_FATOR_R_EVALUATOR = 'SIMPLES_FATOR_R@1';
+/** Elegibilidade da atividade confirmada no perfil (D33). */
+export const SIMPLES_FATOR_R_EVALUATOR_V2 = 'SIMPLES_FATOR_R@2';
 
 /** Número decimal não negativo escrito como texto, para não perder precisão. */
 const decimal = z

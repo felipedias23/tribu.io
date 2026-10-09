@@ -81,6 +81,7 @@ export const BOLA_CASES: BolaCase[] = [
           revenue12m: '1000000.00',
           payroll12m: '300000.00',
           referencePeriod: new Date('2026-01-01'),
+          fatorRSubject: true,
         },
       });
       return company.id;

@@ -2,6 +2,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   registerDecorator,
+  IsBoolean,
   IsEnum,
   IsIn,
   IsOptional,
@@ -143,4 +144,16 @@ export class PutTaxProfileDto {
   })
   @NotFutureMonth()
   referencePeriod?: string | null;
+
+  @ApiPropertyOptional({
+    type: Boolean,
+    nullable: true,
+    description:
+      'Atividade sujeita ao Fator R (LC 123/2006, art. 18, §§ 5º-I e 5º-M). null = não informado (D33).',
+  })
+  @IsOptional()
+  @IsBoolean({
+    message: 'Indique se a atividade está sujeita ao Fator R (sim ou não).',
+  })
+  fatorRSubject?: boolean | null;
 }

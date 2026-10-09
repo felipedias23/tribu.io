@@ -2,9 +2,11 @@ import {
   type FatorRParameters,
   fatorRParametersSchema,
   SIMPLES_FATOR_R_EVALUATOR,
+  SIMPLES_FATOR_R_EVALUATOR_V2,
 } from '../tax-rules/simples-fator-r.parameters';
 import type { FatorRInput, FatorROutcome } from './evaluation';
 import { evaluateSimplesFatorR } from './simples-fator-r.evaluator';
+import { evaluateSimplesFatorRV2 } from './simples-fator-r-v2.evaluator';
 
 /**
  * Evaluators publicados, por chave (§3.4). Um evaluator publicado não muda:
@@ -14,7 +16,9 @@ const EVALUATORS: Record<
   string,
   (input: FatorRInput, parameters: FatorRParameters) => FatorROutcome
 > = {
+  // @1 fica registado para reproduzir as análises feitas com a versão 1.
   [SIMPLES_FATOR_R_EVALUATOR]: evaluateSimplesFatorR,
+  [SIMPLES_FATOR_R_EVALUATOR_V2]: evaluateSimplesFatorRV2,
 };
 
 /** Versão de regra vinda do banco, já selecionada para o período. */

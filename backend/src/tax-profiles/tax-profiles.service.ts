@@ -14,6 +14,7 @@ const TAX_PROFILE_SELECT = {
   revenue12m: true,
   payroll12m: true,
   referencePeriod: true,
+  fatorRSubject: true,
   updatedAt: true,
 } satisfies Prisma.TaxProfileSelect;
 
@@ -29,6 +30,7 @@ const EMPTY_PROFILE: TaxProfileResponse = {
   revenue12m: null,
   payroll12m: null,
   referencePeriod: null,
+  fatorRSubject: null,
   updatedAt: null,
 };
 
@@ -72,6 +74,7 @@ export class TaxProfilesService {
       referencePeriod: dto.referencePeriod
         ? new Date(`${dto.referencePeriod}-01T00:00:00.000Z`)
         : null,
+      fatorRSubject: dto.fatorRSubject ?? null,
     };
     const profile = await this.prisma.taxProfile.upsert({
       where: {

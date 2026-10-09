@@ -19,6 +19,7 @@ const EMPTY = {
   revenue12m: null,
   payroll12m: null,
   referencePeriod: null,
+  fatorRSubject: null,
   updatedAt: null,
 };
 
@@ -208,6 +209,32 @@ describe('Perfil tributário (e2e)', () => {
 
     await put(a.admin, company.id, { cnae: '620150' }).expect(400);
     await put(a.admin, company.id, { cnae: '62015011' }).expect(400);
+  });
+
+  it('guarda a elegibilidade ao Fator R: sim, não ou não informado (D33)', async () => {
+    const company = await createCompany(prisma, a.firmId);
+
+    for (const fatorRSubject of [true, false, null]) {
+      const response = await put(a.admin, company.id, {
+        taxRegime: 'SIMPLES_NACIONAL',
+        fatorRSubject,
+      }).expect(200);
+      expect(response.body.fatorRSubject).toBe(fatorRSubject);
+    }
+    const omitted = await put(a.admin, company.id, {}).expect(200);
+    expect(omitted.body.fatorRSubject).toBeNull();
+
+    const invalid = await put(a.admin, company.id, {
+      fatorRSubject: 'sim',
+    }).expect(400);
+    expect(invalid.body.details).toEqual([
+      {
+        field: 'fatorRSubject',
+        messages: [
+          'Indique se a atividade está sujeita ao Fator R (sim ou não).',
+        ],
+      },
+    ]);
   });
 
   it('recusa campos fora do contrato, como o escritório ou a empresa', async () => {

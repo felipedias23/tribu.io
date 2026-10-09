@@ -5,7 +5,7 @@ import type { TaxRegime } from '../generated/prisma/enums';
  * Versão do Tax Engine gravada em cada análise (§3.4). Muda quando o código
  * de um evaluator muda de forma que altere resultados.
  */
-export const ENGINE_VERSION = '1.0.0';
+export const ENGINE_VERSION = '1.1.0';
 
 /**
  * Aritmética decimal do Tax Engine: nunca vírgula flutuante. Precisão de 40
@@ -30,11 +30,20 @@ export interface FatorRInput {
   payroll12m: string | null;
   /** Mês de referência, AAAA-MM. */
   referencePeriod: string | null;
+  /**
+   * Atividade sujeita ao Fator R (D33); null = não informado. Ausente nos
+   * snapshots anteriores à D33, lidos só pelo evaluator @1.
+   */
+  fatorRSubject?: boolean | null;
 }
 
 /** Campos obrigatórios para o cálculo do Fator R. */
 export type RequiredField =
-  'taxRegime' | 'revenue12m' | 'payroll12m' | 'referencePeriod';
+  | 'taxRegime'
+  | 'revenue12m'
+  | 'payroll12m'
+  | 'referencePeriod'
+  | 'fatorRSubject';
 
 const REQUIRED_IN_SIMPLES: RequiredField[] = [
   'revenue12m',
@@ -43,14 +52,29 @@ const REQUIRED_IN_SIMPLES: RequiredField[] = [
 ];
 
 /**
- * Campos obrigatórios em falta, pela ordem do perfil. Sem regime, o regime
- * também falta. Partilhado pelo evaluator, pelo Radar e pelas análises.
+ * Campos em falta para o evaluator @1, que não muda (§3.4): sem a
+ * elegibilidade ao Fator R. Sem regime, o regime também falta.
  */
 export function missingFields(input: FatorRInput): RequiredField[] {
   return [
     ...(input.taxRegime === null ? (['taxRegime'] as const) : []),
     ...REQUIRED_IN_SIMPLES.filter((field) => input[field] === null),
   ];
+}
+
+/**
+ * Campos em falta para o cálculo atual (evaluator @2, D33): os do @1 e a
+ * confirmação de que a atividade está sujeita ao Fator R. Usado pelo Radar e
+ * pelas análises.
+ */
+export function missingFieldsForFatorR(input: FatorRInput): RequiredField[] {
+  const missing = missingFields(input);
+  return input.fatorRSubject == null ? [...missing, 'fatorRSubject'] : missing;
+}
+
+/** CNAE com máscara para os textos: 7111100 → "7111-1/00". */
+export function formatCnae(cnae: string): string {
+  return `${cnae.slice(0, 4)}-${cnae.slice(4, 5)}/${cnae.slice(5)}`;
 }
 
 /** Passo do raciocínio, mostrado na explicação (US11). */
@@ -94,7 +118,7 @@ export type FatorROutcome =
     } & Explained)
   | ({
       status: 'NOT_APPLICABLE';
-      code: 'REGIME_NOT_SIMPLES';
+      code: 'REGIME_NOT_SIMPLES' | 'ACTIVITY_NOT_SUBJECT';
       message: string;
     } & Explained);
 

@@ -156,6 +156,9 @@ model TaxProfile {
   payroll12m       Decimal?   @map("payroll_12m") @db.Decimal(15, 2)
   /// Mês de referência, guardado como o 1.º dia do mês.
   referencePeriod  DateTime?  @map("reference_period") @db.Date
+  /// Atividade sujeita ao Fator R (LC 123/2006, art. 18, §§ 5º-I e 5º-M);
+  /// NULL = não informado (D33).
+  fatorRSubject    Boolean?   @map("fator_r_subject")
   createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
 

@@ -24,6 +24,13 @@ export class TaxProfileResponse {
   @ApiProperty({ example: '2026-09', type: String, nullable: true })
   referencePeriod: string | null;
 
+  @ApiProperty({
+    type: Boolean,
+    nullable: true,
+    description: 'Atividade sujeita ao Fator R; null = não informado (D33).',
+  })
+  fatorRSubject: boolean | null;
+
   @ApiProperty({ type: Date, nullable: true })
   updatedAt: Date | null;
 }
