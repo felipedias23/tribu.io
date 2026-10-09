@@ -55,6 +55,17 @@ export class RadarResultResponse {
   effectiveRate: string;
 }
 
+export class RadarLastAnalysisResponse {
+  @ApiProperty({ format: 'uuid' })
+  id: string;
+
+  @ApiProperty({ enum: ['COMPLETED', 'INCOMPLETE'] })
+  status: 'COMPLETED' | 'INCOMPLETE';
+
+  @ApiProperty()
+  executedAt: Date;
+}
+
 export class RadarItemResponse {
   @ApiProperty({ type: RadarCompanyResponse })
   company: RadarCompanyResponse;
@@ -73,6 +84,13 @@ export class RadarItemResponse {
 
   @ApiProperty({ type: RadarRuleVersionResponse, nullable: true })
   ruleVersion: RadarRuleVersionResponse | null;
+
+  @ApiProperty({
+    type: RadarLastAnalysisResponse,
+    nullable: true,
+    description: 'Última análise da empresa; null se nunca foi analisada.',
+  })
+  lastAnalysis: RadarLastAnalysisResponse | null;
 
   @ApiProperty({ type: RadarResultResponse, nullable: true })
   result: RadarResultResponse | null;

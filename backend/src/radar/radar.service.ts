@@ -2,9 +2,14 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { TenantId } from '../auth/authenticated-user';
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import type { FatorRInput } from '../tax-calculations/evaluation';
+import {
+  currentPeriod,
+  PROFILE_INPUT_SELECT,
+  toFatorRInput,
+} from '../tax-calculations/profile-input';
 import { selectVersion } from '../tax-calculations/rule-version-selection';
 import { SIMPLES_FATOR_R_CODE } from '../tax-rules/simples-fator-r.parameters';
+import { TaxRulesService } from '../tax-rules/tax-rules.service';
 import type { ListRadarQuery } from './dto/list-radar.query';
 import type {
   RadarItemResponse,
@@ -18,36 +23,10 @@ const COMPANY_SELECT = {
   cnpj: true,
   legalName: true,
   tradeName: true,
-  taxProfile: {
-    select: {
-      taxRegime: true,
-      cnae: true,
-      revenue12m: true,
-      payroll12m: true,
-      referencePeriod: true,
-    },
-  },
+  taxProfile: { select: PROFILE_INPUT_SELECT },
 } satisfies Prisma.CompanySelect;
 
-type CompanyRow = Prisma.CompanyGetPayload<{ select: typeof COMPANY_SELECT }>;
-
 const byLegalName = new Intl.Collator('pt-BR', { sensitivity: 'base' });
-
-/** Mês atual em UTC, AAAA-MM (o mesmo relógio do perfil tributário). */
-function currentPeriod(): string {
-  return new Date().toISOString().slice(0, 7);
-}
-
-function toInput(profile: CompanyRow['taxProfile']): FatorRInput | null {
-  if (!profile) return null;
-  return {
-    taxRegime: profile.taxRegime,
-    cnae: profile.cnae,
-    revenue12m: profile.revenue12m?.toFixed(2) ?? null,
-    payroll12m: profile.payroll12m?.toFixed(2) ?? null,
-    referencePeriod: profile.referencePeriod?.toISOString().slice(0, 7) ?? null,
-  };
-}
 
 /**
  * Tax Radar (US10). O estado é calculado a cada pedido (D26), a partir do
@@ -57,7 +36,10 @@ function toInput(profile: CompanyRow['taxProfile']): FatorRInput | null {
  */
 @Injectable()
 export class RadarService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    private readonly taxRules: TaxRulesService,
+  ) {}
 
   async list(
     tenantId: TenantId,
@@ -86,40 +68,40 @@ export class RadarService {
   private async classifyPortfolio(
     tenantId: TenantId,
   ): Promise<RadarItemResponse[]> {
-    const [companies, versions] = await Promise.all([
+    const [companies, versions, analyses] = await Promise.all([
       this.prisma.company.findMany({
         where: { accountingFirmId: tenantId },
         select: COMPANY_SELECT,
       }),
-      this.prisma.taxRuleVersion.findMany({
-        where: {
-          taxRule: { code: SIMPLES_FATOR_R_CODE },
-          status: 'PUBLISHED',
-        },
+      this.taxRules.publishedVersions(SIMPLES_FATOR_R_CODE),
+      // Última análise de cada empresa (US15): mostra-se no Radar e decide o
+      // sinal de versão da regra substituída.
+      this.prisma.analysis.findMany({
+        where: { accountingFirmId: tenantId },
+        distinct: ['companyId'],
+        orderBy: [{ companyId: 'asc' }, { executedAt: 'desc' }, { id: 'desc' }],
         select: {
           id: true,
-          version: true,
-          evaluatorKey: true,
-          parameters: true,
+          companyId: true,
+          taxRuleVersionId: true,
           status: true,
-          validFrom: true,
-          validUntil: true,
+          executedAt: true,
         },
       }),
     ]);
+    const lastAnalysis = new Map(analyses.map((a) => [a.companyId, a]));
     const period = currentPeriod();
 
     const items = companies.map(({ taxProfile, ...company }) => {
-      const profile = toInput(taxProfile);
+      const profile = toFatorRInput(taxProfile);
+      const last = lastAnalysis.get(company.id) ?? null;
       const ruleVersion = profile?.referencePeriod
         ? selectVersion(versions, profile.referencePeriod)
         : null;
       const signal = classify({
         profile,
         ruleVersion,
-        // As análises entram no passo seguinte; até lá, nenhuma empresa foi
-        // analisada.
-        lastAnalysisRuleVersionId: null,
+        lastAnalysisRuleVersionId: last?.taxRuleVersionId ?? null,
         currentPeriod: period,
       });
       const evaluation = signal.evaluation;
@@ -129,6 +111,9 @@ export class RadarService {
         priorityScore: signal.priorityScore,
         reasons: signal.reasons,
         ruleVersion: signal.ruleVersion,
+        lastAnalysis: last
+          ? { id: last.id, status: last.status, executedAt: last.executedAt }
+          : null,
         result:
           evaluation?.status === 'COMPLETED'
             ? {

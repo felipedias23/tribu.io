@@ -4,9 +4,9 @@ import {
   Dec,
   formatBrl as brl,
   formatPercent,
+  missingFields,
   type FatorRInput,
   type FatorROutcome,
-  type RequiredField,
   type TraceStep,
 } from './evaluation';
 
@@ -28,12 +28,6 @@ function assumptions(input: FatorRInput): Assumption[] {
   ];
 }
 
-const REQUIRED: RequiredField[] = [
-  'revenue12m',
-  'payroll12m',
-  'referencePeriod',
-];
-
 /**
  * Evaluator SIMPLES_FATOR_R@1 (D28): função pura, sem I/O. Fator R = folha ÷
  * RBT12; com o limiar ou mais, Anexo III, abaixo, Anexo V (art. 18, §§ 5º-J e
@@ -47,7 +41,7 @@ export function evaluateSimplesFatorR(
   if (input.taxRegime === null) {
     return {
       status: 'INCOMPLETE',
-      missing: ['taxRegime', ...REQUIRED.filter((f) => input[f] === null)],
+      missing: missingFields(input),
       trace: [],
       assumptions: [],
     };
@@ -63,7 +57,7 @@ export function evaluateSimplesFatorR(
     };
   }
 
-  const missing = REQUIRED.filter((field) => input[field] === null);
+  const missing = missingFields(input);
   if (missing.length > 0) {
     return {
       status: 'INCOMPLETE',

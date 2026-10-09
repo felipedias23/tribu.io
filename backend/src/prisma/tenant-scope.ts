@@ -7,6 +7,7 @@ import { Prisma } from '../generated/prisma/client';
  */
 const SCALAR_FIELDS: Record<Prisma.ModelName, Record<string, string>> = {
   AccountingFirm: Prisma.AccountingFirmScalarFieldEnum,
+  Analysis: Prisma.AnalysisScalarFieldEnum,
   Company: Prisma.CompanyScalarFieldEnum,
   TaxProfile: Prisma.TaxProfileScalarFieldEnum,
   TaxRule: Prisma.TaxRuleScalarFieldEnum,
@@ -22,6 +23,12 @@ export const READ_ONLY_MODELS: ReadonlySet<string> = new Set([
   'TaxRule',
   'TaxRuleVersion',
 ]);
+
+/**
+ * Tabelas do tenant só de inserção: um registo nunca muda nem é apagado pela
+ * API (análises imutáveis, §3.4). Apagar fica para a remoção do escritório.
+ */
+export const APPEND_ONLY_MODELS: ReadonlySet<string> = new Set(['Analysis']);
 
 /** Operações que só leem. */
 const READ_OPERATIONS = new Set([
@@ -176,6 +183,13 @@ export function assertTenantScoped(
     return;
   }
   if (!TENANT_MODELS.has(model)) return;
+  if (
+    APPEND_ONLY_MODELS.has(model) &&
+    !READ_OPERATIONS.has(operation) &&
+    !CREATE_OPERATIONS.has(operation)
+  ) {
+    fail('registo imutável: só inserção e leitura');
+  }
 
   if (CREATE_OPERATIONS.has(operation)) {
     const data = args?.data;

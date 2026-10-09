@@ -1,5 +1,6 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { AnalysesModule } from './analyses/analyses.module';
 import { AuthModule } from './auth/auth.module';
 import { JsonOnlyMiddleware } from './common/middleware/json-only.middleware';
 import { CompaniesModule } from './companies/companies.module';
@@ -26,6 +27,7 @@ import { UsersModule } from './users/users.module';
     CompaniesModule,
     TaxProfilesModule,
     RadarModule,
+    AnalysesModule,
     HealthModule,
   ],
 })

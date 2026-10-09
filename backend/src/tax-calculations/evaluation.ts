@@ -36,6 +36,23 @@ export interface FatorRInput {
 export type RequiredField =
   'taxRegime' | 'revenue12m' | 'payroll12m' | 'referencePeriod';
 
+const REQUIRED_IN_SIMPLES: RequiredField[] = [
+  'revenue12m',
+  'payroll12m',
+  'referencePeriod',
+];
+
+/**
+ * Campos obrigatórios em falta, pela ordem do perfil. Sem regime, o regime
+ * também falta. Partilhado pelo evaluator, pelo Radar e pelas análises.
+ */
+export function missingFields(input: FatorRInput): RequiredField[] {
+  return [
+    ...(input.taxRegime === null ? (['taxRegime'] as const) : []),
+    ...REQUIRED_IN_SIMPLES.filter((field) => input[field] === null),
+  ];
+}
+
 /** Passo do raciocínio, mostrado na explicação (US11). */
 export interface TraceStep {
   code: string;

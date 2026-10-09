@@ -16,10 +16,52 @@ function check(operation: string, args?: Record<string, unknown>) {
 describe('Verificação de tenant no Prisma (D16)', () => {
   it('identifica os models do tenant pela coluna accountingFirmId', () => {
     expect([...TENANT_MODELS].sort()).toEqual([
+      'Analysis',
       'Company',
       'TaxProfile',
       'User',
     ]);
+  });
+
+  describe('análises: só inserção e leitura (§3.4)', () => {
+    const where = { id: 'x', accountingFirmId: TENANT };
+
+    it('aceita criar e ler com o tenant', () => {
+      expect(() =>
+        assertTenantScoped('Analysis', 'create', {
+          data: { accountingFirmId: TENANT },
+        }),
+      ).not.toThrow();
+      for (const operation of ['findFirst', 'findMany', 'count']) {
+        expect(() =>
+          assertTenantScoped('Analysis', operation, { where }),
+        ).not.toThrow();
+      }
+    });
+
+    it.each([
+      'update',
+      'updateMany',
+      'updateManyAndReturn',
+      'upsert',
+      'delete',
+      'deleteMany',
+    ])('recusa %s, mesmo com o tenant', (operation) => {
+      expect(() =>
+        assertTenantScoped('Analysis', operation, {
+          where,
+          data: {},
+          create: { accountingFirmId: TENANT },
+          update: {},
+        }),
+      ).toThrow('registo imutável: só inserção e leitura');
+    });
+
+    it('continua a exigir o tenant', () => {
+      expect(() =>
+        assertTenantScoped('Analysis', 'findMany', { where: { id: 'x' } }),
+      ).toThrow(TenantScopeViolationError);
+    });
   });
 
   describe('catálogo global de regras (S11)', () => {

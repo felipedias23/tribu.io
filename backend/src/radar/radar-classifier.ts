@@ -4,6 +4,7 @@ import {
   type FatorROutcome,
   formatPercent,
   formatPoints,
+  missingFields,
   type RequiredField,
 } from '../tax-calculations/evaluation';
 import { evaluate } from '../tax-calculations/evaluators';
@@ -68,12 +69,6 @@ const FIELD_LABELS: Record<RequiredField, string> = {
   payroll12m: 'folha dos 12 meses',
   referencePeriod: 'mês de referência',
 };
-
-const REQUIRED_IN_SIMPLES: RequiredField[] = [
-  'revenue12m',
-  'payroll12m',
-  'referencePeriod',
-];
 
 /** Meses desde o ano 0, para comparar meses AAAA-MM. */
 function monthIndex(period: string): number {
@@ -153,10 +148,7 @@ export function classify(input: RadarInput): RadarSignal {
       input,
     );
   }
-  const missing: RequiredField[] = [
-    ...(profile.taxRegime === null ? (['taxRegime'] as const) : []),
-    ...REQUIRED_IN_SIMPLES.filter((field) => profile[field] === null),
-  ];
+  const missing = missingFields(profile);
   if (missing.length > 0) {
     return signal(
       'DADOS_INCOMPLETOS',

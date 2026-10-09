@@ -192,6 +192,7 @@ describe('Tax Radar (e2e)', () => {
 
     expect(Object.keys(item).sort()).toEqual([
       'company',
+      'lastAnalysis',
       'priorityScore',
       'reasons',
       'result',
