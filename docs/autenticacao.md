@@ -71,7 +71,7 @@ list(tenantId: TenantId) {
 
 - `AuthGuard` e `RolesGuard` são globais. Toda rota exige sessão, exceto as marcadas `@Public()`.
 - `@Roles(Role.ADMIN, …)` restringe a rota; sem `@Roles()`, qualquer utilizador autenticado acede. Papel não permitido: 403.
-- **Regras aprovadas até agora:** o primeiro utilizador do registo é `ADMIN`; só `ADMIN` altera utilizadores; o escritório nunca fica sem `ADMIN` (D13). Company e TaxProfile: todos os papéis leem, `ADMIN` e `ANALYST` criam e editam, sem exclusão no MVP (D20). As permissões das restantes funcionalidades são definidas com cada uma, antes da implementação.
+- **Regras aprovadas até agora:** o primeiro utilizador do registo é `ADMIN`; só `ADMIN` altera utilizadores; o escritório nunca fica sem `ADMIN` (D13). Company e TaxProfile: todos os papéis leem, `ADMIN` e `ANALYST` criam e editam, sem exclusão no MVP (D20). Tax Radar e análises: todos os papéis consultam; `ADMIN` e `ANALYST` executam análises, e `VIEWER` recebe 403 (D27). As regras tributárias não têm escrita pela API (S11). As permissões das restantes funcionalidades são definidas com cada uma, antes da implementação.
 
 ## Variáveis de ambiente
 
