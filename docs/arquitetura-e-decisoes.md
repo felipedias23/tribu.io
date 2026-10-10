@@ -237,7 +237,7 @@ Erros em formato padronizado com detalhes por campo, exibidos de forma clara no 
 
 React Router, TanStack Query (entra com o primeiro módulo de negócio), `AuthContext`, CSS Modules, layout **responsivo mobile-first** (Radar em cartões no telemóvel). Testes com Vitest, Testing Library e MSW.
 
-Rotas: `/login`, `/register`, `/radar` (inicial), `/companies`, `/companies/new`, `/companies/:id`, `/analyses/:id`, `/companies/:id/simulations/new`, `/simulations/:id`, `/imports`, `/imports/new`, `/settings/*`, `/audit`.
+Rotas: `/login`, `/register`, `/radar` (inicial), `/companies`, `/companies/new`, `/companies/:id`, `/analyses/:id`, `/companies/:id/simulations/new`, `/simulations/:id`, `/imports`, `/imports/new`, `/imports/:id`, `/settings/*`, `/audit`.
 
 ## 7. Testes, Docker e CI
 

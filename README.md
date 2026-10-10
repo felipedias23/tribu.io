@@ -16,6 +16,8 @@ O Tribu.io funciona como uma camada de inteligência sobre a carteira de empresa
 
 **Semana 4 — Tax Engine, análises e Tax Radar (Checkpoint 2).** A primeira regra tributária é o Fator R do Simples Nacional: a tabela dos Anexos III e V foi conferida no texto da LC 123/2006 e está numa versão publicada, com vigência, base legal e checksum, que o banco não deixa alterar nem sobrepor a outra ([§3.4](docs/arquitetura-e-decisoes.md#34-tax-engine-reprodutibilidade)). O cálculo é uma função pura com aritmética decimal: 28% exatos ficam no Anexo III mesmo quando a vírgula flutuante daria 27,999…%, e nenhum valor em falta é inventado. Cada análise grava a entrada, a versão da regra e o raciocínio, não muda depois e pode ser reproduzida; fora do Simples Nacional a regra não se aplica (D31). O Tax Radar, agora a página inicial, classifica a carteira em cinco estados a cada pedido, ordena-a por prioridade e explica cada sinal em português; a explicação de uma análise mostra o cálculo passo a passo, os dados usados e em falta, as premissas e a regra aplicada. Funciona em cartões no telemóvel. O seed tem 30 empresas e cada escritório demonstra os cinco estados. Antes de começar, uma revisão de fragilidades corrigiu cinco pontos (logs sem valores fiscais, erros 500 que deviam ser 400, curingas na pesquisa, verificação de tenant no próprio escritório e corpos só em JSON). Ao longo da semana, 194 bugs inseridos de propósito foram todos detetados pelos testes.
 
+**Semana 5 — importação da carteira e elegibilidade ao Fator R.** Um escritório pode agora importar a carteira a partir de um ficheiro CSV ou XLSX exportado do seu sistema ([§3.6](docs/arquitetura-e-decisoes.md#36-integrações)): o ficheiro de exemplo indica as colunas, e cada linha traz a empresa e, se quiser, o perfil tributário. Antes de gravar, uma prévia separa as linhas em novas, atualizadas (com o antes e o depois), sem alterações, conflitos (CNPJ repetido, código externo de outra empresa) e erros por coluna; conflitos e erros nunca são aplicados, e uma célula vazia não apaga o que já estava gravado. A confirmação volta a verificar tudo numa transação e recusa se a carteira mudou entretanto; a prévia expira em 24 horas e só o resumo fica guardado. O ficheiro é lido com as proteções da regra S17: tamanho e linhas limitados, formato confirmado pelo conteúdo, ZIP-bomb e fórmulas recusadas, e os zeros à esquerda que o Excel apaga no CNPJ recuperados. Antes da importação, o perfil tributário passou a indicar se a atividade está sujeita ao Fator R (D33), em vez de o sistema o presumir, numa versão 2 da regra que deixa as análises antigas reprodutíveis; e todo o conteúdo tributário passou a citar a fonte oficial conferida (D32). Ao longo da semana foram inseridos 116 bugs de propósito: os testes detetaram 115, e o outro não muda o comportamento (é equivalente).
+
 ## Arquitetura
 
 Monólito modular com três serviços em containers separados:
@@ -35,7 +37,7 @@ Decisões e modelo de dados planejado: [arquitetura e decisões](docs/arquitetur
 | Camada | Tecnologias |
 | --- | --- |
 | Frontend | React 19, TypeScript, Vite, React Router, Vitest, Testing Library, MSW |
-| Backend | NestJS 11, TypeScript, REST, Swagger, class-validator, Zod, JWT (`@nestjs/jwt`), argon2, decimal.js, Jest, Supertest |
+| Backend | NestJS 11, TypeScript, REST, Swagger, class-validator, Zod, JWT (`@nestjs/jwt`), argon2, decimal.js, csv-parse, fflate e fast-xml-parser (importação), Jest, Supertest |
 | Banco | PostgreSQL 17, Prisma 7 |
 | Infra | Docker, Docker Compose, nginx, GitHub Actions |
 
@@ -52,15 +54,16 @@ Decisões e modelo de dados planejado: [arquitetura e decisões](docs/arquitetur
 │   │   ├── companies/    empresas do escritório e validação do CNPJ
 │   │   ├── config/       validação das variáveis de ambiente
 │   │   ├── health/       GET /api/v1/health
+│   │   ├── imports/      importação por ficheiro: leitura, prévia e confirmação (US12, US13)
 │   │   ├── prisma/       ligação ao PostgreSQL, verificação de tenant e seed
 │   │   ├── radar/        classificador do Tax Radar e GET /radar (US10)
 │   │   ├── tax-calculations/ Tax Engine: evaluator do Fator R, escolha da versão
 │   │   ├── tax-profiles/ perfil tributário de cada empresa
 │   │   ├── tax-rules/    catálogo de regras, parâmetros e checksum
 │   │   └── users/        utilizadores do escritório
-│   └── test/             testes e2e (API, banco, isolamento entre tenants, matriz BOLA, regras, Radar, análises)
+│   └── test/             testes e2e (API, banco, isolamento entre tenants, matriz BOLA, regras, Radar, análises, importação) e fixtures/
 ├── frontend/             aplicação React
-│   └── src/              app/ (rotas e layout), auth/ (sessão e páginas), companies/ (empresas e perfil tributário), radar/, analyses/, shared/
+│   └── src/              app/ (rotas e layout), auth/ (sessão e páginas), companies/ (empresas e perfil tributário), radar/, analyses/, imports/, shared/
 ├── infra/docker/         Dockerfiles e nginx.conf
 ├── infra/scripts/        entrypoint do backend (migrations + seed)
 ├── docs/                 especificações do projeto
@@ -116,7 +119,7 @@ O seed cria dois escritórios fictícios, cada um com uma conta por papel. A pas
 | Beta Contabilidade | `analista@beta.tribu.example` | ANALYST |
 | Beta Contabilidade | `consulta@beta.tribu.example` | VIEWER |
 
-Entre em <http://localhost:8080/login> com uma destas contas, ou crie um escritório novo em `/register`. Depois do login, a aplicação abre no Tax Radar. Cada escritório tem 15 empresas fictícias que cobrem os cinco estados do Radar; as contas `ADMIN` e `ANALYST` podem executar análises na ficha de cada empresa.
+Entre em <http://localhost:8080/login> com uma destas contas, ou crie um escritório novo em `/register`. Depois do login, a aplicação abre no Tax Radar. Cada escritório tem 15 empresas fictícias que cobrem os cinco estados do Radar; as contas `ADMIN` e `ANALYST` podem executar análises na ficha de cada empresa e importar empresas em **Importações** (há um ficheiro de exemplo na página).
 
 ## Testes
 
