@@ -131,7 +131,7 @@ erDiagram
     Integration {
         uuid id PK
         uuid accountingFirmId FK
-        enum type "CSV | XLSX"
+        enum type "FILE (D36); conectores futuros acrescentam tipos"
         string name
         datetime createdAt
     }
@@ -147,9 +147,10 @@ erDiagram
         uuid accountingFirmId FK
         uuid integrationId FK
         uuid createdById FK
-        enum status "PREVIEW | CONFIRMED | CANCELLED"
-        jsonb preview
+        enum status "PREVIEW | CONFIRMED | CANCELLED | EXPIRED"
+        jsonb preview "linhas da prévia; nulo depois de sair de PREVIEW (D37)"
         jsonb summary
+        datetime expiresAt "24 h depois da criação (D37)"
         datetime createdAt
     }
 ```

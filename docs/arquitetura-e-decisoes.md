@@ -1,6 +1,6 @@
 # Relatório Técnico — Fase 1 (Análise e Arquitetura)
 
-> Status: **aprovado** em 2026-09-26. Decisões D10–D14 aprovadas em 2026-09-27 (autenticação, semana 2). Decisões D15–D20 aprovadas em 2026-09-28 (auditoria de segurança, [seguranca.md](seguranca.md)). D21, aprovada em 2026-09-27 com o layout base, registada em 2026-09-28. D22 aprovada em 2026-10-02 (fecho da semana 2). D24 e D25 aprovadas em 2026-10-08 (revisão de fragilidades antes da semana 4, [seguranca.md](seguranca.md#estado-de-implementação)). D26–D30 aprovadas em 2026-10-09 (Tax Engine e Radar, semana 4). D31 aprovada em 2026-10-09 (análises). D32 e D33 aprovadas em 2026-10-09 (fontes do conteúdo tributário e elegibilidade ao Fator R).
+> Status: **aprovado** em 2026-09-26. Decisões D10–D14 aprovadas em 2026-09-27 (autenticação, semana 2). Decisões D15–D20 aprovadas em 2026-09-28 (auditoria de segurança, [seguranca.md](seguranca.md)). D21, aprovada em 2026-09-27 com o layout base, registada em 2026-09-28. D22 aprovada em 2026-10-02 (fecho da semana 2). D24 e D25 aprovadas em 2026-10-08 (revisão de fragilidades antes da semana 4, [seguranca.md](seguranca.md#estado-de-implementação)). D26–D30 aprovadas em 2026-10-09 (Tax Engine e Radar, semana 4). D31 aprovada em 2026-10-09 (análises). D32 e D33 aprovadas em 2026-10-09 (fontes do conteúdo tributário e elegibilidade ao Fator R). D34–D38 aprovadas em 2026-10-10 (importação, semana 5).
 > Fontes: [definicao-do-produto.md](definicao-do-produto.md), [instrucoes-fase-analise.md](instrucoes-fase-analise.md), [regras-academicas.md](regras-academicas.md), [CLAUDE.md](CLAUDE.md).
 
 ## 1. Estado inicial
@@ -46,6 +46,11 @@
 | D31 | Análises que não calculam | Fora do Simples Nacional, `POST /companies/:id/analyses` responde 422 e nada é gravado: a regra não se aplica. Com dados em falta, RBT12 zero ou acima do limite, ou sem versão vigente no mês, a análise é gravada como `INCOMPLETE`, com o motivo e o que faltou, para ficar registado que se tentou, com que dados e com que versão. Sem mês de referência ou sem versão vigente, a análise não tem versão nem checksum. A atividade não sujeita ao Fator R também responde 422 (D33) |
 | D32 | Fonte oficial para todo o conteúdo tributário | Nenhum valor ou conceito tributário (alíquotas, limites, regimes, listas de atividades, prazos) entra no sistema sem norma e dispositivo, link para o texto oficial (Planalto, Diário Oficial, Receita Federal ou CGSN), data da conferência e quem conferiu. Uma regra tributária só é publicada depois da confirmação de uma segunda pessoa, idealmente um contador. Decisões de produto (margens, prazos, pesos) ficam marcadas como tal. Fontes e procedimento de atualização na §3.4.2 |
 | D33 | Elegibilidade ao Fator R confirmada no perfil | O Fator R só se aplica às atividades dos §§ 5º-I e 5º-M do art. 18 da LC 123/2006. O perfil tributário ganha "atividade sujeita ao Fator R" (sim, não, não informado; não informado é dado ausente, D20), editado pelos papéis da D20. Sim: calcula. Não: o Radar mostra `NORMAL` (a regra não se aplica) e a análise responde 422 sem gravar. Não informado: o Radar mostra `DADOS_INCOMPLETOS` e a análise fica `INCOMPLETE`. A premissa passa a dado confirmado. Como muda a entrada do cálculo, entra como evaluator `SIMPLES_FATOR_R@2` numa versão 2 da regra (mesmos parâmetros, vigente desde 2018); a versão 1 passa a `SUPERSEDED`, e as empresas analisadas com ela aparecem com `REVISAR_REGRA`. Os perfis existentes ficam com o campo vazio até o contador confirmar. Implementada no início da semana 5 |
+| D34 | Importação: papéis e conteúdo | `ADMIN` e `ANALYST` importam e confirmam (como na D20); `VIEWER` vê o histórico. Importa empresas e, opcionalmente, o perfil tributário, num modelo de ficheiro fixo (§3.6.1) com ficheiro de exemplo. Numa empresa existente, célula vazia não altera o valor atual; numa empresa nova, fica como dado ausente (D20) |
+| D35 | Importação: limites e segurança | Ficheiro até 2 MB e 2.000 linhas de dados; XLSX até 20 MB descompactado, verificado antes de abrir, e só a primeira folha. Tipo pela extensão e pelos primeiros bytes. Célula com fórmula é erro na linha; nenhuma fórmula é avaliada. CSV com `;` ou `,` e em UTF-8 ou Windows-1252. O ficheiro vai em base64 dentro de JSON: a S27 não ganha exceção, só o limite de tamanho do corpo sobe nesta rota. O ficheiro original não é guardado e o pedido nunca entra nos logs (S21). Rate limit na rota |
+| D36 | Importação: deduplicação e conflitos | Por linha: `id_externo` já mapeado na origem → CNPJ no escritório → empresa nova. Resultados: nova, atualizada (só os campos preenchidos, com antes e depois), sem alterações, conflito (CNPJ repetido no ficheiro; `id_externo` e CNPJ que apontam para empresas diferentes) e erro (dados inválidos, com mensagem por campo). Conflitos e erros nunca são aplicados; resolvem-se corrigindo o ficheiro ou a ficha e importando de novo. Cada importação tem uma origem (`Integration` do tipo `FILE`, com nome); os `id_externo` ficam em `ExternalCompanyMapping`, nunca na empresa |
+| D37 | Importação: prévia, confirmação e retenção | A prévia vale 24 horas; depois expira (`EXPIRED`). A confirmação revalida tudo numa transação: se a carteira mudou desde a prévia, responde 409 e pede uma prévia nova. Depois de confirmar, cancelar ou expirar, as linhas da prévia são apagadas e fica só o resumo (contagens, origem, quem e quando). Processamento síncrono; a fila só entra pelos gatilhos de [seguranca.md](seguranca.md#endurecimento-futuro) |
+| D38 | Depois da importação | O Radar mostra as empresas importadas no pedido seguinte (D26). Nenhuma análise é executada automaticamente (a análise em lote continua extra). A auditoria das importações entra com o `AuditLog` (semana 6, S14) |
 | — | Banco | PostgreSQL + Prisma ([ADR 0001](adr/0001-postgresql-prisma.md)) |
 | — | Forma de trabalho | Projeto individual; PRs revistos pelo professor; Conventional Commits |
 
@@ -166,6 +171,25 @@ Cada sinal traz `reasons[]` (`code`, `message`, regra, versão, dados usados, au
 - CNPJ validado (numérico e alfanumérico — IN RFB 2.229/2024).
 - Deduplicação: mapeamento externo → CNPJ no tenant → novo; duplicidades/contradições → conflito (nunca aplicado automaticamente).
 - `ImportBatch` guarda prévia e resumo; confirmação transacional; limites de tamanho e linhas.
+- Decisões da semana 5: papéis e conteúdo (D34), limites e segurança (D35), deduplicação e conflitos (D36), prévia e retenção (D37), efeitos (D38).
+
+#### 3.6.1 Modelo do ficheiro (D34)
+
+Uma linha de cabeçalho com estes nomes (sem distinguir maiúsculas nem acentos) e uma empresa por linha. Colunas desconhecidas são ignoradas e listadas na prévia.
+
+| Coluna | Obrigatória | Formato aceite |
+|---|---|---|
+| `cnpj` | sim | numérico ou alfanumérico, com ou sem máscara |
+| `razao_social` | sim | texto |
+| `nome_fantasia` | não | texto |
+| `id_externo` | não | código da empresa no sistema de origem |
+| `regime` | não | Simples Nacional, Lucro Presumido ou Lucro Real |
+| `cnae`, `municipio`, `uf` | não | como no perfil tributário |
+| `receita_12m`, `folha_12m` | não | `1.200.000,00` ou `1200000.00` |
+| `mes_referencia` | não | `2026-09` ou `09/2026` |
+| `sujeita_fator_r` | não | sim, não ou vazio (D33) |
+
+As validações são as da API (CNPJ, valores não negativos, mês nunca no futuro, D29).
 
 ## 4. Modelo de dados
 
@@ -181,9 +205,9 @@ Cada sinal traz `reasons[]` (`code`, `message`, regra, versão, dados usados, au
 | Simulation | FKs compostas → Company e User; único `(id, accountingFirmId)`; 1:N SimulationScenario |
 | SimulationScenario | `accountingFirmId`; FK composta → Simulation; único `(simulationId, label)` |
 | AuditLog | append-only; FK composta → User; índice `(accountingFirmId, createdAt DESC)` |
-| Integration | únicos `(accountingFirmId, type, name)` e `(id, accountingFirmId)` |
+| Integration | tipo `FILE` (D36); únicos `(accountingFirmId, type, name)` e `(id, accountingFirmId)` |
 | ExternalCompanyMapping | `accountingFirmId`; FKs compostas → Integration e Company; únicos `(integrationId, externalId)`, `(integrationId, companyId)` |
-| ImportBatch | FKs compostas → Integration e User; índice `(accountingFirmId, createdAt DESC)` |
+| ImportBatch | FKs compostas → Integration e User; índice `(accountingFirmId, createdAt DESC)`; estados `PREVIEW`, `CONFIRMED`, `CANCELLED`, `EXPIRED`; linhas da prévia apagadas ao sair de `PREVIEW` (D37) |
 
 Regras de schema do tenant (D15): toda tabela do tenant tem `accounting_firm_id NOT NULL` e índice que começa por ela; tabelas que podem ser pai têm único `(id, accountingFirmId)`; FKs entre tabelas do tenant são compostas; unicidades de negócio incluem o tenant. `TaxRule` e `TaxRuleVersion` são globais e só mudam por migration/seed. Valores monetários em `Decimal(15,2)`. IDs UUID. Migrations via Prisma Migrate (SQL adicional para CHECK/EXCLUDE). Seed idempotente e fictício: 2 escritórios, um usuário por papel, ~30 empresas cobrindo todos os estados do Radar, primeira regra publicada (por migration, para existir também em produção); senhas de demonstração via variáveis de ambiente.
 
@@ -232,7 +256,7 @@ Rotas: `/login`, `/register`, `/radar` (inicial), `/companies`, `/companies/new`
 | 7 | Testes, CI verde, escolha do fornecedor (D8), papéis do banco (D18) e deploy público (D23), acessibilidade, revisão de segurança |
 | 8 | Bugfix, README com screenshots, vídeo de 3 min, demo |
 
-Se houver tempo: análise da carteira em lote, tela de auditoria, criação de utilizadores pelo `ADMIN` (D22, US17), consulta de versões de regras, monitorização automática das fontes legais (D32).
+Se houver tempo: resolução de conflitos da importação linha a linha (D36), análise da carteira em lote, tela de auditoria, criação de utilizadores pelo `ADMIN` (D22, US17), consulta de versões de regras, monitorização automática das fontes legais (D32).
 
 ## 9. Riscos
 
