@@ -7,6 +7,9 @@ import { CompaniesPage } from '../companies/CompaniesPage';
 import { CompanyDetailPage } from '../companies/CompanyDetailPage';
 import { CompanyNewPage } from '../companies/CompanyNewPage';
 import { AnalysisPage } from '../analyses/AnalysisPage';
+import { ImportPage } from '../imports/ImportPage';
+import { ImportsPage } from '../imports/ImportsPage';
+import { NewImportPage } from '../imports/NewImportPage';
 import { RadarPage } from '../radar/RadarPage';
 import { PlaceholderPage } from '../shared/components/PlaceholderPage';
 import { AppLayout } from './AppLayout';
@@ -41,7 +44,9 @@ export const routes: RouteObject[] = [
               { path: '/companies/new', element: <CompanyNewPage /> },
               { path: '/companies/:id', element: <CompanyDetailPage /> },
               { path: '/analyses/:id', element: <AnalysisPage /> },
-              { path: '/imports', element: <PlaceholderPage title="Importações" /> },
+              { path: '/imports', element: <ImportsPage /> },
+              { path: '/imports/new', element: <NewImportPage /> },
+              { path: '/imports/:id', element: <ImportPage /> },
               { path: '/audit', element: <PlaceholderPage title="Auditoria" /> },
               { path: '/settings/*', element: <PlaceholderPage title="Configurações" /> },
               { path: '*', element: <NotFoundPage /> },
