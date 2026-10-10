@@ -2,7 +2,7 @@ import { JwtService } from '@nestjs/jwt';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
-import { AUTH_RATE_LIMIT } from '../src/auth/auth.module';
+import { AUTH_RATE_LIMIT } from '../src/auth/decorators/strict-throttle.decorator';
 import { SESSION_COOKIE } from '../src/auth/session-cookie';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { createTestApp } from './support/app';
@@ -38,10 +38,10 @@ describe('Auth (e2e)', () => {
     return email;
   }
 
-  function register(body: Record<string, unknown>) {
+  function register(body: Record<string, unknown>, ip = nextIp()) {
     return request(app.getHttpServer())
       .post('/api/v1/auth/register')
-      .set('X-Forwarded-For', nextIp())
+      .set('X-Forwarded-For', ip)
       .send(body);
   }
 
@@ -206,6 +206,17 @@ describe('Auth (e2e)', () => {
       expect(
         await prisma.accountingFirm.count({ where: { name: firmName } }),
       ).toBe(0);
+    });
+
+    // O 409 revela que o email tem conta (S9): o limite trava a enumeração.
+    it(`limita a ${AUTH_RATE_LIMIT} tentativas por minuto por IP (429)`, async () => {
+      const ip = nextIp();
+
+      for (let attempt = 0; attempt < AUTH_RATE_LIMIT; attempt += 1) {
+        await register({}, ip).expect(400);
+      }
+      await register({}, ip).expect(429);
+      await register({}, nextIp()).expect(400);
     });
   });
 

@@ -2,17 +2,18 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import type { Env } from '../config/env.validation';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import {
+  API_RATE_LIMIT,
+  RATE_LIMIT_TTL_MS,
+} from './decorators/strict-throttle.decorator';
 import { AuthGuard } from './guards/auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { SESSION_TTL_SECONDS } from './session-cookie';
 import { SessionService } from './session.service';
-
-/** Tentativas de login ou registo por IP, por minuto. */
-export const AUTH_RATE_LIMIT = 10;
 
 @Module({
   imports: [
@@ -25,14 +26,19 @@ export const AUTH_RATE_LIMIT = 10;
         verifyOptions: { algorithms: ['HS256'] },
       }),
     }),
-    // Brute force e credential stuffing: por IP, só no login e no registo.
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: AUTH_RATE_LIMIT }]),
+    // Rate limit por IP em cada rota (D44); o login, o registo e a prévia da
+    // importação baixam-no com @StrictThrottle().
+    ThrottlerModule.forRoot([
+      { ttl: RATE_LIMIT_TTL_MS, limit: API_RATE_LIMIT },
+    ]),
   ],
   controllers: [AuthController],
   providers: [
     AuthService,
     SessionService,
-    // Ordem importa: primeiro autentica, depois verifica o papel.
+    // Ordem importa: primeiro o rate limit, para que um pedido em excesso não
+    // chegue a ler a sessão no banco; depois autentica; por fim, o papel.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],

@@ -13,6 +13,7 @@ describe('validateEnv', () => {
       PORT: 3000,
       TRUST_PROXY_HOPS: 1,
       COOKIE_SECURE: false,
+      SWAGGER_ENABLED: true,
     });
   });
 
@@ -53,6 +54,28 @@ describe('validateEnv', () => {
     ).toBe(false);
     expect(() => validateEnv({ ...required, COOKIE_SECURE: 'sim' })).toThrow(
       /COOKIE_SECURE/,
+    );
+  });
+
+  it('desliga o Swagger por padrão em produção e respeita o valor explícito (D44)', () => {
+    expect(validateEnv({ ...required, NODE_ENV: 'test' }).SWAGGER_ENABLED).toBe(
+      true,
+    );
+    expect(
+      validateEnv({ ...required, NODE_ENV: 'production' }).SWAGGER_ENABLED,
+    ).toBe(false);
+    expect(
+      validateEnv({
+        ...required,
+        NODE_ENV: 'production',
+        SWAGGER_ENABLED: 'true',
+      }).SWAGGER_ENABLED,
+    ).toBe(true);
+    expect(
+      validateEnv({ ...required, SWAGGER_ENABLED: 'false' }).SWAGGER_ENABLED,
+    ).toBe(false);
+    expect(() => validateEnv({ ...required, SWAGGER_ENABLED: 'sim' })).toThrow(
+      /SWAGGER_ENABLED/,
     );
   });
 
