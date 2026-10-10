@@ -22,8 +22,43 @@ describe('Verificação de tenant no Prisma (D16)', () => {
     ]);
   });
 
-  it('ignora models globais, que não são do tenant', () => {
-    expect(() => assertTenantScoped('TaxRule', 'findMany', {})).not.toThrow();
+  describe('catálogo global de regras (S11)', () => {
+    it.each(['TaxRule', 'TaxRuleVersion'])(
+      '%s aceita leituras sem tenant',
+      (model) => {
+        for (const operation of [
+          'findUnique',
+          'findFirst',
+          'findMany',
+          'count',
+          'aggregate',
+          'groupBy',
+        ]) {
+          expect(() => assertTenantScoped(model, operation, {})).not.toThrow();
+        }
+      },
+    );
+
+    it.each([
+      'create',
+      'createMany',
+      'update',
+      'updateMany',
+      'upsert',
+      'delete',
+      'deleteMany',
+      'findRaw',
+    ])('recusa %s em TaxRuleVersion', (operation) => {
+      expect(() =>
+        assertTenantScoped('TaxRuleVersion', operation, { where: {} }),
+      ).toThrow('catálogo global só muda por migration (regra S11)');
+    });
+
+    it('recusa escrever em TaxRule', () => {
+      expect(() =>
+        assertTenantScoped('TaxRule', 'update', { where: { id: 'x' } }),
+      ).toThrow(TenantScopeViolationError);
+    });
   });
 
   describe('o próprio escritório (AccountingFirm)', () => {

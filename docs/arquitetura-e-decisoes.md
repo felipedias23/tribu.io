@@ -148,7 +148,7 @@ Cada sinal traz `reasons[]` (`code`, `message`, regra, versão, dados usados, au
 | ExternalCompanyMapping | `accountingFirmId`; FKs compostas → Integration e Company; únicos `(integrationId, externalId)`, `(integrationId, companyId)` |
 | ImportBatch | FKs compostas → Integration e User; índice `(accountingFirmId, createdAt DESC)` |
 
-Regras de schema do tenant (D15): toda tabela do tenant tem `accounting_firm_id NOT NULL` e índice que começa por ela; tabelas que podem ser pai têm único `(id, accountingFirmId)`; FKs entre tabelas do tenant são compostas; unicidades de negócio incluem o tenant. `TaxRule` e `TaxRuleVersion` são globais e só mudam por migration/seed. Valores monetários em `Decimal(15,2)`. IDs UUID. Migrations via Prisma Migrate (SQL adicional para CHECK/EXCLUDE). Seed idempotente e fictício: 2 escritórios, um usuário por papel, ~30 empresas cobrindo todos os estados do Radar, primeira regra publicada; senhas de demonstração via variáveis de ambiente.
+Regras de schema do tenant (D15): toda tabela do tenant tem `accounting_firm_id NOT NULL` e índice que começa por ela; tabelas que podem ser pai têm único `(id, accountingFirmId)`; FKs entre tabelas do tenant são compostas; unicidades de negócio incluem o tenant. `TaxRule` e `TaxRuleVersion` são globais e só mudam por migration/seed. Valores monetários em `Decimal(15,2)`. IDs UUID. Migrations via Prisma Migrate (SQL adicional para CHECK/EXCLUDE). Seed idempotente e fictício: 2 escritórios, um usuário por papel, ~30 empresas cobrindo todos os estados do Radar, primeira regra publicada (por migration, para existir também em produção); senhas de demonstração via variáveis de ambiente.
 
 ## 5. API (`/api/v1`, Swagger em `/api/docs`)
 

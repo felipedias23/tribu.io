@@ -79,7 +79,7 @@ erDiagram
         uuid taxRuleId FK
         int version
         date validFrom
-        date validUntil "nulo = em vigor"
+        date validUntil "exclusivo; nulo = em vigor"
         jsonb parameters
         string source "base legal"
         string evaluatorKey "ex.: SIMPLES_FATOR_R@1"
