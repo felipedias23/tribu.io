@@ -18,6 +18,7 @@ frontend/src/
 ├── companies/               # lista, cadastro e detalhe de empresas (US06, US07) e perfil tributário (US08)
 ├── radar/                   # Tax Radar (US10): resumo por estado, lista por prioridade, formatação
 ├── analyses/                # executar e consultar análises (US09, US15) e a sua explicação (US11)
+├── imports/                 # importação por ficheiro (US12, US13): envio, prévia, confirmação, histórico
 ├── components/ApiStatus.tsx # estado da API (GET /health) nas páginas de login e registo
 ├── shared/
 │   ├── api/http.ts          # cliente HTTP, ApiError, aviso de sessão expirada
@@ -28,7 +29,7 @@ frontend/src/
 └── test/                    # MSW (server.ts) e renderRoute
 ```
 
-As pastas dos outros módulos de negócio (`imports/`, …) são criadas quando cada módulo for implementado.
+As pastas dos outros módulos de negócio (`simulations/`, …) são criadas quando cada módulo for implementado.
 
 ## Rotas
 
@@ -41,7 +42,10 @@ As pastas dos outros módulos de negócio (`imports/`, …) são criadas quando 
 | `/companies/new` | sessão; formulário só para `ADMIN` e `ANALYST` | cadastro de empresa |
 | `/companies/:id` | sessão; editar e executar análises só para `ADMIN` e `ANALYST` | dados da empresa e edição, perfil tributário, análises do Fator R (executar e histórico) |
 | `/analyses/:id` | sessão (todos os papéis, D27) | explicação de uma análise (US11): resultado, sinal do Radar, cálculo passo a passo, dados usados e em falta, premissas, regra com versão, vigência, fonte e checksum |
-| `/imports`, `/audit`, `/settings/*` | sessão | "Em construção" |
+| `/imports` | sessão (todos os papéis) | histórico das importações; "Nova importação" só para `ADMIN` e `ANALYST` (D34) |
+| `/imports/new` | `ADMIN` e `ANALYST` (os outros voltam a `/imports`) | origem e ficheiro, com o [ficheiro de exemplo](../frontend/public/modelo-importacao.csv); extensão e tamanho verificados antes de enviar |
+| `/imports/:id` | sessão; confirmar e cancelar só para `ADMIN` e `ANALYST` | prévia por resultado (conflitos e erros primeiro, depois novas, atualizadas com antes e depois, sem alterações) ou o resumo de uma importação fechada (D36, D37) |
+| `/audit`, `/settings/*` | sessão | "Em construção" |
 | qualquer outra | sessão | 404 dentro do layout |
 
 As páginas "Em construção" não têm dados nem regras de negócio. Para implementar uma secção, troque o `PlaceholderPage` da rota pelo componente do módulo. Rotas de detalhe (`/simulations/:id`, …) entram com cada funcionalidade.
@@ -53,7 +57,8 @@ Todas as secções aparecem para todos os papéis (decisão D21). Para restringi
 - Leituras usam `useQuery` com as chaves de cada módulo (ex.: `companyKeys` em `companies/api.ts`). Depois de gravar, a página atualiza o detalhe no cache e invalida as listas do módulo.
 - Erros 4xx não são repetidos; falhas de rede e 5xx tentam mais uma vez.
 - O cache é limpo quando deixa de haver sessão, no logout ou quando a sessão expira (regra S24).
-- O estado do Radar é calculado pela API a cada pedido (D26). Gravar uma empresa, um perfil tributário ou executar uma análise invalida `radarKeys.all`, para o Radar não mostrar um estado antigo.
+- O estado do Radar é calculado pela API a cada pedido (D26). Gravar uma empresa, um perfil tributário, executar uma análise ou confirmar uma importação invalida `radarKeys.all` (e, na importação, também a lista de empresas), para não se mostrar um estado antigo.
+- O ficheiro da importação vai em base64 dentro de JSON (D35), lido do próprio campo com `FileReader`.
 - Datas e horas aparecem no fuso do browser. Os testes fixam `America/Sao_Paulo` (`vite.config.ts`), para darem o mesmo resultado em qualquer máquina.
 - Ações que o papel não permite ficam escondidas (ex.: `canEditCompanies`), mas quem autoriza é a API.
 
@@ -109,8 +114,9 @@ Os estilos base são os do telemóvel; o desktop aplica-se com `@media (min-widt
 | `radar/format.test.ts` | percentagens a partir do texto da API, truncadas e sem vírgula flutuante |
 | `analyses/analyses.test.tsx` | executar na ficha e abrir a explicação, explicação completa e incompleta, motivo do desfecho, 404, VIEWER sem botão, 422 fora do Simples, Radar atualizado, paginação do histórico |
 | `analyses/format.test.ts` | vigência com fim exclusivo |
+| `imports/imports.test.tsx` | histórico, VIEWER sem envio, envio em base64 com a origem, verificações antes de enviar, erro da API, prévia por resultado, antes e depois formatados, confirmar (resumo e Radar atualizado), recusa com o estado atual, cancelar, nada para confirmar, 404 |
 | `app/ErrorPage.test.tsx` | página de erro sem detalhes técnicos |
 | `shared/api/http.test.ts` | erros padronizados, 204, aviso de 401 fora de `/auth/*` |
 | `components/ApiStatus.test.tsx` | estado da API: online, erro do health check e sem resposta |
 
-O jsdom não aplica CSS: o comportamento responsivo (painel escondido no telemóvel, barra lateral no desktop, empresas e Radar em cartões no telemóvel) é verificado no browser a 375px e 1280px.
+O jsdom não aplica CSS: o comportamento responsivo (painel escondido no telemóvel, barra lateral no desktop, empresas e Radar em cartões no telemóvel, prévia da importação em cartões) é verificado no browser a 375px e 1280px.
