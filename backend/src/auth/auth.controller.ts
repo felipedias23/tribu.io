@@ -7,7 +7,6 @@ import {
   Post,
   Req,
   Res,
-  UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -22,7 +21,6 @@ import {
   ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { ThrottlerGuard } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { ErrorResponseDto } from '../common/errors/error-response';
 import type { Env } from '../config/env.validation';
@@ -30,6 +28,7 @@ import type { AuthenticatedUser } from './authenticated-user';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
+import { StrictThrottle } from './decorators/strict-throttle.decorator';
 import { AuthUserResponse } from './dto/auth-user.response';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -55,7 +54,7 @@ export class AuthController {
 
   @Post('register')
   @Public()
-  @UseGuards(ThrottlerGuard)
+  @StrictThrottle()
   @ApiOperation({
     summary: 'Regista um escritório e o seu primeiro utilizador (ADMIN)',
     description: `Inicia sessão automaticamente. ${SESSION_COOKIE_DESCRIPTION}`,
@@ -78,7 +77,7 @@ export class AuthController {
 
   @Post('login')
   @Public()
-  @UseGuards(ThrottlerGuard)
+  @StrictThrottle()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Inicia sessão com email e password',

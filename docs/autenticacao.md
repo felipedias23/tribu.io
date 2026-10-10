@@ -34,7 +34,8 @@ logout ─► tokenVersion + 1 ─► apaga o cookie
 
 | Ameaça | Mitigação |
 |---|---|
-| Brute force, credential stuffing | 10 tentativas por minuto por IP em login e registo (`@nestjs/throttler`) |
+| Brute force, credential stuffing | 10 tentativas por minuto por IP em login e registo (`@nestjs/throttler`, [`@StrictThrottle()`](../backend/src/auth/decorators/strict-throttle.decorator.ts)) |
+| Abuso das outras rotas | 300 pedidos por minuto por IP em cada rota (D44), verificados antes da sessão: um pedido em excesso responde 429 sem consultar o banco |
 | Enumeração pelo login | Mesmo 401 e mesma mensagem para email inexistente e password errada |
 | Enumeração pelo tempo de resposta | Email inexistente também corre argon2 contra um hash fictício |
 | IP falsificado para contornar o limite | `trust proxy` com número exato de proxies (`TRUST_PROXY_HOPS`) |

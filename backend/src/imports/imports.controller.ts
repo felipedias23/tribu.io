@@ -8,7 +8,6 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -25,13 +24,13 @@ import {
   ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
-import { ThrottlerGuard } from '@nestjs/throttler';
 import type { AuthenticatedUser, TenantId } from '../auth/authenticated-user';
 import {
   CurrentTenant,
   CurrentUser,
 } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { StrictThrottle } from '../auth/decorators/strict-throttle.decorator';
 import { SESSION_COOKIE } from '../auth/session-cookie';
 import { ErrorResponseDto } from '../common/errors/error-response';
 import { Role } from '../generated/prisma/enums';
@@ -53,7 +52,7 @@ export class ImportsController {
 
   @Post()
   @Roles(Role.ADMIN, Role.ANALYST)
-  @UseGuards(ThrottlerGuard)
+  @StrictThrottle()
   @ApiOperation({
     summary: 'Lê um ficheiro CSV ou XLSX e devolve a prévia (ADMIN, ANALYST)',
     description:

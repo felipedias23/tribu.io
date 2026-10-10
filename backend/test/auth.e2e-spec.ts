@@ -2,7 +2,7 @@ import { JwtService } from '@nestjs/jwt';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
-import { AUTH_RATE_LIMIT } from '../src/auth/auth.module';
+import { AUTH_RATE_LIMIT } from '../src/auth/decorators/strict-throttle.decorator';
 import { SESSION_COOKIE } from '../src/auth/session-cookie';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { createTestApp } from './support/app';
