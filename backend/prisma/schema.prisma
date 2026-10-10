@@ -70,6 +70,23 @@ enum RadarStatus {
   @@map("radar_status")
 }
 
+/// Tipo de origem de dados (D36). Conectores futuros acrescentam tipos.
+enum IntegrationType {
+  FILE
+
+  @@map("integration_type")
+}
+
+/// Estado de uma importação (D37). Só PREVIEW guarda as linhas da prévia.
+enum ImportBatchStatus {
+  PREVIEW
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+
+  @@map("import_batch_status")
+}
+
 /// Escritório de contabilidade: o tenant. Toda entidade do tenant referencia
 /// esta tabela por `accountingFirmId`.
 model AccountingFirm {
@@ -80,8 +97,9 @@ model AccountingFirm {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  users     User[]
-  companies Company[]
+  users        User[]
+  companies    Company[]
+  integrations Integration[]
 
   @@map("accounting_firms")
 }
@@ -104,6 +122,7 @@ model User {
 
   accountingFirm AccountingFirm @relation(fields: [accountingFirmId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   analyses       Analysis[]
+  importBatches  ImportBatch[]
 
   /// Alvo das FKs compostas das tabelas filhas (decisão D15).
   @@unique([id, accountingFirmId])
@@ -125,9 +144,10 @@ model Company {
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  accountingFirm AccountingFirm @relation(fields: [accountingFirmId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  accountingFirm AccountingFirm           @relation(fields: [accountingFirmId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   taxProfile     TaxProfile?
   analyses       Analysis[]
+  externalIds    ExternalCompanyMapping[]
 
   /// O CNPJ não se repete dentro do escritório (regra S9).
   @@unique([accountingFirmId, cnpj])
@@ -249,4 +269,76 @@ model Analysis {
   /// Histórico da empresa, mais recente primeiro (US15).
   @@index([accountingFirmId, companyId, executedAt(sort: Desc)])
   @@map("analyses")
+}
+
+/// Origem de dados de um escritório (D36), ex.: "Sistema contábil X". A camada
+/// de integração mantém os identificadores externos fora de Company.
+model Integration {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountingFirmId String          @map("accounting_firm_id") @db.Uuid
+  type             IntegrationType
+  name             String
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  accountingFirm AccountingFirm           @relation(fields: [accountingFirmId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  mappings       ExternalCompanyMapping[]
+  importBatches  ImportBatch[]
+
+  /// O nome da origem não se repete no escritório (regra S9).
+  @@unique([accountingFirmId, type, name])
+  /// Alvo das FKs compostas das tabelas filhas (decisão D15).
+  @@unique([id, accountingFirmId])
+  @@map("integrations")
+}
+
+/// Identificador de uma empresa num sistema de origem (D36).
+model ExternalCompanyMapping {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountingFirmId String   @map("accounting_firm_id") @db.Uuid
+  integrationId    String   @map("integration_id") @db.Uuid
+  companyId        String   @map("company_id") @db.Uuid
+  externalId       String   @map("external_id")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  /// FKs compostas (decisão D15): origem e empresa do mesmo escritório.
+  integration Integration @relation(fields: [integrationId, accountingFirmId], references: [id, accountingFirmId], onDelete: Restrict, onUpdate: Restrict)
+  company     Company     @relation(fields: [companyId, accountingFirmId], references: [id, accountingFirmId], onDelete: Restrict, onUpdate: Restrict)
+
+  /// Um id externo aponta para uma só empresa, e uma empresa tem um só id
+  /// externo, em cada origem.
+  @@unique([integrationId, externalId])
+  @@unique([integrationId, companyId])
+  @@index([accountingFirmId])
+  @@map("external_company_mappings")
+}
+
+/// Uma importação de ficheiro (US12, D37): a prévia enquanto PREVIEW, só o
+/// resumo depois de confirmada, cancelada ou expirada.
+model ImportBatch {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountingFirmId String            @map("accounting_firm_id") @db.Uuid
+  integrationId    String            @map("integration_id") @db.Uuid
+  createdById      String            @map("created_by_id") @db.Uuid
+  status           ImportBatchStatus
+  /// Nome do ficheiro enviado (o conteúdo não é guardado, S17).
+  fileName         String            @map("file_name")
+  /// CSV ou XLSX (CHECK na migration).
+  fileFormat       String            @map("file_format")
+  /// Linhas da prévia; NULL fora de PREVIEW (D37).
+  preview          Json?             @db.JsonB
+  /// Contagens por resultado e colunas ignoradas.
+  summary          Json              @db.JsonB
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  /// Fim da validade da prévia (24 horas, D37).
+  expiresAt        DateTime          @map("expires_at") @db.Timestamptz(3)
+  /// Quando saiu de PREVIEW; NULL enquanto PREVIEW.
+  closedAt         DateTime?         @map("closed_at") @db.Timestamptz(3)
+
+  /// FKs compostas (decisão D15).
+  integration Integration @relation(fields: [integrationId, accountingFirmId], references: [id, accountingFirmId], onDelete: Restrict, onUpdate: Restrict)
+  createdBy   User        @relation(fields: [createdById, accountingFirmId], references: [id, accountingFirmId], onDelete: Restrict, onUpdate: Restrict)
+
+  /// Histórico de importações, mais recente primeiro.
+  @@index([accountingFirmId, createdAt(sort: Desc)])
+  @@map("import_batches")
 }

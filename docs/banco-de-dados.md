@@ -4,7 +4,7 @@ PostgreSQL 17 com Prisma 7. O modelo completo planeado para o MVP está no [rela
 
 ## Estado atual
 
-Semana 4: o tenant, os utilizadores, as empresas, os perfis tributários, o catálogo de regras tributárias e as análises. As outras entidades (Simulation, …) entram por migration na semana da respetiva funcionalidade.
+Semana 5: o tenant, os utilizadores, as empresas, os perfis tributários, o catálogo de regras tributárias, as análises e as tabelas da importação. As outras entidades (Simulation, …) entram por migration na semana da respetiva funcionalidade.
 
 | Tabela | Modelo Prisma | Finalidade |
 |---|---|---|
@@ -15,6 +15,9 @@ Semana 4: o tenant, os utilizadores, as empresas, os perfis tributários, o cat�
 | `tax_rules` | `TaxRule` | Catálogo **global** de regras tributárias (§3.4); não pertence a um escritório |
 | `tax_rule_versions` | `TaxRuleVersion` | Versões de cada regra, com vigência, parâmetros e checksum (§3.4, D28) |
 | `analyses` | `Analysis` | Execução de uma regra sobre uma empresa, imutável (US09, D31) |
+| `integrations` | `Integration` | Origem de dados do escritório, ex.: "Sistema contábil X" (D36) |
+| `external_company_mappings` | `ExternalCompanyMapping` | Código de uma empresa numa origem (D36); fica fora de `companies` |
+| `import_batches` | `ImportBatch` | Uma importação: prévia enquanto `PREVIEW`, só o resumo depois (US12, D37) |
 
 Tabelas e colunas em `snake_case` no PostgreSQL (`@@map`/`@map`); no código TypeScript os nomes ficam em `camelCase`.
 
@@ -110,6 +113,18 @@ Cada execução cria um registo novo; nenhum é alterado (§3.4). A verificaçã
 | `trace` | `jsonb` | desfecho, passos, ausências, premissas e motivos (US11) |
 | `executed_at` | `timestamptz(3)` | momento da execução |
 
+### `integrations`, `external_company_mappings` e `import_batches`
+
+Tabelas do tenant da importação (D34–D37), com FKs compostas entre si, para `companies` e para `users` (D15).
+
+| Tabela | Regras |
+|---|---|
+| `integrations` | tipo `FILE`; nome não vazio, até 100 caracteres, único por escritório e tipo; `UNIQUE (id, accounting_firm_id)` para as FKs compostas |
+| `external_company_mappings` | `external_id` não vazio, até 100 caracteres; único por origem; uma empresa tem um só `external_id` por origem |
+| `import_batches` | `file_format` `CSV` ou `XLSX`; `preview` só existe em `PREVIEW`, e `closed_at` só fora dele (`CHECK`); `expires_at` depois de `created_at`; `summary` e `preview` são objetos JSON. O ficheiro em si nunca é guardado (S17) |
+
+Uma importação fechada (confirmada, cancelada ou expirada) não muda: o trigger `import_batches_guard_closed` recusa o `UPDATE`.
+
 ### Restrições
 
 | Nome | Tipo | Motivo |
@@ -164,6 +179,7 @@ Ficam em [`backend/prisma/migrations/`](../backend/prisma/migrations/) e são ve
 | `20261009200659_analyses` | Enums `analysis_status` e `radar_status`, tabela `analyses` com FKs compostas, `UNIQUE (id, accounting_firm_id)` em `users`, `CHECK` e trigger de imutabilidade e de checksum |
 | `20261009211732_tax_profiles_fator_r_subject` | Coluna `fator_r_subject` em `tax_profiles` (D33) |
 | `20261009211733_simples_fator_r_v2` | Versão 1 do Fator R passa a `SUPERSEDED`; versão 2 publicada com o evaluator `SIMPLES_FATOR_R@2` (D33) |
+| `20261010093420_imports` | Enums `integration_type` e `import_batch_status`, tabelas `integrations`, `external_company_mappings` e `import_batches` com FKs compostas, `CHECK` e trigger de fecho |
 
 Comandos (a partir de `backend/`, com o PostgreSQL a correr: `docker compose up -d db`):
 
