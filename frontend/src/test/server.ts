@@ -42,4 +42,5 @@ export const server = setupServer(
   http.get('/api/v1/radar', () => HttpResponse.json({ items: [], total: 0, page: 1, pageSize: 20 })),
   http.get('/api/v1/radar/summary', () => HttpResponse.json(emptyRadarSummary)),
   http.get('/api/v1/companies/:id/analyses', () => HttpResponse.json({ items: [], total: 0, page: 1, pageSize: 10 })),
+  http.get('/api/v1/imports', () => HttpResponse.json({ items: [], total: 0, page: 1, pageSize: 20 })),
 );

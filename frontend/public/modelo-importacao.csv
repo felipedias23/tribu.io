@@ -1,0 +1,3 @@
+﻿cnpj;razao_social;nome_fantasia;id_externo;regime;cnae;municipio;uf;receita_12m;folha_12m;mes_referencia;sujeita_fator_r
+12.ABC.345/01DE-35;Empresa Exemplo Ltda;Exemplo;CLI-001;Simples Nacional;6201-5/01;São Paulo;SP;1.200.000,00;360.000,00;09/2026;sim
+TRIBUX00000170;Outra Empresa Fictícia Ltda;;CLI-002;Lucro Presumido;;Campinas;SP;;;;
