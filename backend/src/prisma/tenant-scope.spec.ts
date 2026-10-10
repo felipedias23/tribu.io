@@ -18,6 +18,9 @@ describe('Verificação de tenant no Prisma (D16)', () => {
     expect([...TENANT_MODELS].sort()).toEqual([
       'Analysis',
       'Company',
+      'ExternalCompanyMapping',
+      'ImportBatch',
+      'Integration',
       'TaxProfile',
       'User',
     ]);
