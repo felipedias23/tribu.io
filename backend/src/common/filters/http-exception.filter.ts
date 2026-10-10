@@ -68,6 +68,22 @@ export class HttpExceptionFilter implements ExceptionFilter {
   private toErrorResponse(exception: unknown, path: string): ErrorResponseDto {
     const timestamp = new Date().toISOString();
 
+    // O body-parser recusa um corpo acima do limite com um erro que não é do
+    // Nest: sem isto, viraria 500.
+    if (
+      typeof exception === 'object' &&
+      exception !== null &&
+      (exception as { type?: unknown }).type === 'entity.too.large'
+    ) {
+      return {
+        statusCode: HttpStatus.PAYLOAD_TOO_LARGE,
+        error: 'Payload Too Large',
+        message: 'O pedido excede o tamanho máximo permitido.',
+        path,
+        timestamp,
+      };
+    }
+
     if (!(exception instanceof HttpException)) {
       return {
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,

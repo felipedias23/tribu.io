@@ -1,6 +1,7 @@
 import { PrismaClient, Role } from '../../src/generated/prisma/client';
 import { createAnalysis } from './analyses';
 import { createCompany } from './companies';
+import { createImportBatch } from './imports';
 import type { Tenant } from './tenants';
 
 /**
@@ -110,6 +111,28 @@ export const BOLA_CASES: BolaCase[] = [
     },
     snapshot: (prisma, id) =>
       prisma.analysis.findUniqueOrThrow({ where: { id } }),
+  },
+  {
+    method: 'GET',
+    path: '/imports/:id',
+    targetId: async (b, prisma) => (await createImportBatch(prisma, b)).id,
+    snapshot: (prisma, id) =>
+      prisma.importBatch.findUniqueOrThrow({ where: { id } }),
+  },
+  {
+    method: 'POST',
+    path: '/imports/:id/confirm',
+    targetId: async (b, prisma) => (await createImportBatch(prisma, b)).id,
+    // A não pode confirmar a prévia de B: o estado não muda.
+    snapshot: (prisma, id) =>
+      prisma.importBatch.findUniqueOrThrow({ where: { id } }),
+  },
+  {
+    method: 'POST',
+    path: '/imports/:id/cancel',
+    targetId: async (b, prisma) => (await createImportBatch(prisma, b)).id,
+    snapshot: (prisma, id) =>
+      prisma.importBatch.findUniqueOrThrow({ where: { id } }),
   },
 ];
 
