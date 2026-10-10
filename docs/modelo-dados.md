@@ -108,24 +108,28 @@ erDiagram
         uuid companyId FK
         uuid taxRuleVersionId FK
         uuid createdById FK
+        jsonb inputSnapshot "perfil usado como situação atual (D40)"
+        string parametersChecksum
+        string engineVersion
         datetime createdAt
     }
     SimulationScenario {
         uuid id PK
         uuid accountingFirmId FK
         uuid simulationId FK
-        string label "único por simulação"
-        jsonb inputs
-        jsonb result
+        string label "único por simulação; Situação atual é a base"
+        int position "ordem de apresentação"
+        jsonb inputs "receita e folha alteradas (D40)"
+        jsonb result "Fator R, anexo, alíquota, imposto estimado, diferença"
     }
     AuditLog {
         uuid id PK
         uuid accountingFirmId FK
         uuid userId FK
-        string action
+        string action "evento da D41"
         string entityType
-        uuid entityId
-        jsonb metadata
+        uuid entityId "nulo em login e logout"
+        jsonb metadata "ids, campos alterados, contagens; nunca valores fiscais"
         datetime createdAt
     }
     Integration {
@@ -165,7 +169,7 @@ erDiagram
 | TaxRule | `code` único | Catálogo global de regras |
 | TaxRuleVersion | único `(taxRuleId, version)`; `CHECK validUntil > validFrom`; `EXCLUDE` sobreposição de vigência | Só uma versão vigente por período |
 | Analysis | FKs compostas → Company e User; índice `(accountingFirmId, companyId, executedAt DESC)`; trigger de imutabilidade | Histórico por empresa. O Radar é calculado no pedido (D26), por isso `radarStatus` não precisa de índice |
-| Simulation | FKs compostas → Company e User; único `(id, accountingFirmId)` | Isolamento entre tenants; alvo da FK composta de SimulationScenario |
+| Simulation | FKs compostas → Company e User; único `(id, accountingFirmId)`; imutável (D40) | Isolamento entre tenants; alvo da FK composta de SimulationScenario |
 | SimulationScenario | FK composta → Simulation; único `(simulationId, label)` | Cenários com nome distinto, do mesmo tenant da simulação |
 | AuditLog | apenas inserção (append-only); FK composta → User; índice `(accountingFirmId, createdAt DESC)` | Trilho de auditoria imutável |
 | Integration | únicos `(accountingFirmId, type, name)` e `(id, accountingFirmId)` | Integrações nomeadas por escritório; alvo das FKs compostas |
@@ -179,6 +183,6 @@ erDiagram
 - IDs `UUID`.
 - Valores monetários em `Decimal(15,2)`.
 - Toda entidade do tenant tem `accountingFirmId`, incluindo as tabelas filhas (D15); `TaxRule` e `TaxRuleVersion` são catálogo global.
-- `Analysis` é imutável: uma nova execução cria um novo registo.
+- `Analysis` e `Simulation` são imutáveis: uma nova execução cria um novo registo. `AuditLog` é só de inserção (D41).
 - `AnalysisInput` da especificação é guardado como `inputSnapshot` (JSONB) em `Analysis` (decisão D6).
 - O estado do Tax Radar é derivado (não é tabela) e calculado a cada pedido (decisão D26); `Analysis.radarStatus` guarda o estado no momento de cada execução, como histórico.
