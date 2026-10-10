@@ -74,7 +74,7 @@ Enquanto um mecanismo está pendente, a regra correspondente é verificada na re
 
 ### Uploads, jobs e integrações
 
-- **S17.** Todo upload: limite de bytes (nginx e API), de linhas e de tamanho descompactado (XLSX é ZIP); tipo validado por extensão e *magic bytes*, não pelo `Content-Type`; leitura em streaming; fórmulas nunca avaliadas; o ficheiro original não é gravado; a prévia tem prazo de retenção.
+- **S17.** Todo upload (valores da importação na D35): limite de bytes (nginx e API), de linhas e de tamanho descompactado (XLSX é ZIP); tipo validado por extensão e *magic bytes*, não pelo `Content-Type`; leitura em streaming; fórmulas nunca avaliadas; o ficheiro original não é gravado; a prévia tem prazo de retenção.
 - **S18.** Todo job assíncrono leva `tenantId` e `actorId` no payload, revalida o recurso no tenant ao executar e é idempotente.
 - **S19.** Credenciais de integração são cifradas em repouso e nunca voltam pela API. Webhooks de entrada exigem assinatura HMAC com timestamp.
 - **S20.** Exportações para CSV/XLSX escapam células que começam com `=`, `+`, `-`, `@`, tab ou CR (formula injection).

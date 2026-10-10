@@ -152,9 +152,12 @@ Acrescentar colegas ao escritório é a US17 (decisão D22).
 
 **Como** sócio, **quero** importar a carteira a partir de um ficheiro exportado do meu sistema **para** não ter de cadastrar empresa a empresa.
 
-- [ ] Aceita CSV e XLSX, com limite de tamanho e de linhas.
-- [ ] Mostra uma prévia (novas, atualizadas, com erro) antes de gravar.
-- [ ] Nada é gravado até à confirmação; a confirmação é transacional.
+- [ ] Aceita CSV e XLSX no modelo de ficheiro da §3.6.1, com ficheiro de exemplo; importa empresas e, opcionalmente, o perfil tributário (decisão D34).
+- [ ] Ficheiro até 2 MB e 2.000 linhas; fórmulas recusadas; tipo verificado pelo conteúdo (decisão D35).
+- [ ] Mostra uma prévia (novas, atualizadas com antes e depois, sem alterações, conflitos, erros por campo) antes de gravar; a prévia vale 24 horas (decisão D37).
+- [ ] Nada é gravado até à confirmação; a confirmação é transacional e revalida tudo, pedindo uma prévia nova se a carteira mudou (decisão D37).
+- [ ] Numa empresa existente, célula vazia não apaga o valor atual (decisão D34).
+- [ ] `ADMIN` e `ANALYST` importam; `VIEWER` só vê o histórico (decisão D34).
 - [ ] A importação pode ser cancelada.
 
 ### US13 — Resolver conflitos da importação
@@ -162,8 +165,8 @@ Acrescentar colegas ao escritório é a US17 (decisão D22).
 **Como** sócio, **quero** ver duplicados e contradições na importação **para** decidir o que fazer com eles.
 
 - [ ] Deduplicação por mapeamento externo, depois por CNPJ dentro do escritório.
-- [ ] Conflitos são mostrados e nunca aplicados automaticamente.
-- [ ] O resumo da importação fica disponível no histórico.
+- [ ] Conflitos (CNPJ repetido no ficheiro, `id_externo` e CNPJ de empresas diferentes) são mostrados com o motivo e nunca aplicados; resolvem-se corrigindo o ficheiro ou a ficha (decisão D36).
+- [ ] O resumo da importação fica disponível no histórico; as linhas da prévia não são guardadas depois de confirmar, cancelar ou expirar (decisão D37).
 
 ## Simulação, histórico e auditoria
 
