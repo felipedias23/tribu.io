@@ -1,0 +1,6 @@
+CNPJ;Razão Social;Nome Fantasia;ID Externo;Regime;CNAE;Município;UF;Receita 12m;Folha 12m;Mês Referência;Sujeita Fator R;Observações
+01234567000195;Consultoria Zero à Esquerda Ltda;Zero;E-001;Simples Nacional;6201501;São Paulo;SP;1.200.000,00;336.000,00;01/09/2026;sim;numérico
+TRIBUX00000170;Clínica Alfanumérica Ltda;;E-002;Lucro Presumido;0111301;Campinas;sp;480000;;;não;alfa
+11222333000181;Fórmula Ltda;;E-003;Simples Nacional;7112000;Recife;PE;=2*500000;100000;2026-08;;tem fórmula
+;;;;;;;;;;;;
+11.222.333/0001-81;Repetida Ltda;;E-004;Simples;;;;-10;;13/2026;talvez;erros
