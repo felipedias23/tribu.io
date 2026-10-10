@@ -173,6 +173,7 @@ Cada sinal traz `reasons[]` (`code`, `message`, regra, versão, dados usados, au
 - Deduplicação: mapeamento externo → CNPJ no tenant → novo; duplicidades/contradições → conflito (nunca aplicado automaticamente).
 - `ImportBatch` guarda prévia e resumo; confirmação transacional; limites de tamanho e linhas.
 - Leitura do ficheiro (semana 5): funções puras em [`imports/reading/`](../backend/src/imports/reading/) — limites e formato pelo conteúdo, CSV (UTF-8 ou Windows-1252, `;` ou `,`), primeira folha do XLSX (texto partilhado, inline e rico, números, booleanos, datas em número de série nos sistemas 1900 e 1904), cabeçalho e linhas normalizadas com os erros por coluna. Recupera os zeros à esquerda que o Excel apaga no CNPJ e no CNAE (os dígitos verificadores confirmam o CNPJ).
+- Prévia e confirmação (semana 5): a classificação de cada linha (nova, atualizada, sem alterações, conflito, erro) é uma função pura em [`import-preview.ts`](../backend/src/imports/import-preview.ts). A confirmação volta a classificar todas as linhas numa transação `SERIALIZABLE` e compara com a prévia guardada; se diferem, ou se o PostgreSQL deteta uma alteração concorrente, responde 409 e nada é aplicado. Prévias com mais de 24 horas passam a `EXPIRED` quando a lista ou a importação são lidas.
 - Decisões da semana 5: papéis e conteúdo (D34), limites e segurança (D35), deduplicação e conflitos (D36), prévia e retenção (D37), efeitos (D38).
 
 #### 3.6.1 Modelo do ficheiro (D34)
