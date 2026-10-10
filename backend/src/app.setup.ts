@@ -56,6 +56,8 @@ export function configureApp(app: NestExpressApplication): void {
   );
   app.useGlobalFilters(new HttpExceptionFilter());
 
+  // Em produção o mapa da API não fica público (D44).
+  if (!config.get('SWAGGER_ENABLED', { infer: true })) return;
   const document = SwaggerModule.createDocument(
     app,
     new DocumentBuilder()

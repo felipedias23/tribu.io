@@ -48,6 +48,9 @@ const envSchema = z
     TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
     // Cookie de sessão só por HTTPS. Padrão: ativo em produção.
     COOKIE_SECURE: z.enum(['true', 'false']).optional(),
+    // Swagger em /api/docs (D44). Padrão: desligado em produção, onde o mapa
+    // da API não precisa de ficar público.
+    SWAGGER_ENABLED: z.enum(['true', 'false']).optional(),
     // Lida só para a verificação de produção; quem a usa é o seed.
     SEED_PASSWORD: z.string().optional(),
   })
@@ -66,13 +69,24 @@ const envSchema = z
       });
     }
   })
-  .transform(({ COOKIE_SECURE, SEED_PASSWORD: _seedPassword, ...env }) => ({
-    ...env,
-    COOKIE_SECURE:
-      COOKIE_SECURE === undefined
-        ? env.NODE_ENV === 'production'
-        : COOKIE_SECURE === 'true',
-  }));
+  .transform(
+    ({
+      COOKIE_SECURE,
+      SWAGGER_ENABLED,
+      SEED_PASSWORD: _seedPassword,
+      ...env
+    }) => ({
+      ...env,
+      COOKIE_SECURE:
+        COOKIE_SECURE === undefined
+          ? env.NODE_ENV === 'production'
+          : COOKIE_SECURE === 'true',
+      SWAGGER_ENABLED:
+        SWAGGER_ENABLED === undefined
+          ? env.NODE_ENV !== 'production'
+          : SWAGGER_ENABLED === 'true',
+    }),
+  );
 
 export type Env = z.infer<typeof envSchema>;
 
