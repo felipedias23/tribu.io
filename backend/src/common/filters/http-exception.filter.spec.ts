@@ -72,6 +72,30 @@ describe('HttpExceptionFilter', () => {
     expect(JSON.stringify(body)).not.toContain('segredo');
   });
 
+  it('corpo acima do limite (erro do body-parser) responde 413, não 500', () => {
+    const log = jest.spyOn(Logger.prototype, 'error');
+    log.mockClear();
+    const { host, status, json } = createHost();
+
+    filter.catch(
+      Object.assign(new Error('request entity too large'), {
+        type: 'entity.too.large',
+        status: 413,
+      }),
+      host,
+    );
+
+    expect(status).toHaveBeenCalledWith(413);
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 413,
+        error: 'Payload Too Large',
+        message: 'O pedido excede o tamanho máximo permitido.',
+      }),
+    );
+    expect(log).not.toHaveBeenCalled();
+  });
+
   describe('log de erros 5xx (regra S21)', () => {
     const PRISMA_MESSAGE =
       'Invalid `prisma.taxProfile.upsert()` invocation: revenue12m: "987654.32"';

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
+import { json, type NextFunction, type Request, type Response } from 'express';
 import helmet from 'helmet';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { validationExceptionFactory } from './common/validation/validation-exception.factory';
@@ -33,6 +34,16 @@ export function configureApp(app: NestExpressApplication): void {
     }),
   );
   app.use(cookieParser());
+  // O ficheiro da importação vai em base64 dentro de JSON (D35): só esta rota
+  // aceita um corpo até 3 MB; as outras mantêm o limite padrão de 100 KB. O
+  // parser fica dentro de uma função: o Nest não regista o seu parser global
+  // se já existir uma camada chamada "jsonParser".
+  const importsJson = json({ limit: '3mb' });
+  app.use(
+    `/${API_PREFIX}/imports`,
+    (req: Request, res: Response, next: NextFunction) =>
+      importsJson(req, res, next),
+  );
 
   // Sem CORS: o frontend acede à API pela mesma origem (proxy nginx/Vite).
   app.useGlobalPipes(

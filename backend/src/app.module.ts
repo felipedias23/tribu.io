@@ -6,6 +6,7 @@ import { JsonOnlyMiddleware } from './common/middleware/json-only.middleware';
 import { CompaniesModule } from './companies/companies.module';
 import { validateEnv } from './config/env.validation';
 import { HealthModule } from './health/health.module';
+import { ImportsModule } from './imports/imports.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RadarModule } from './radar/radar.module';
 import { TaxProfilesModule } from './tax-profiles/tax-profiles.module';
@@ -28,6 +29,7 @@ import { UsersModule } from './users/users.module';
     TaxProfilesModule,
     RadarModule,
     AnalysesModule,
+    ImportsModule,
     HealthModule,
   ],
 })
