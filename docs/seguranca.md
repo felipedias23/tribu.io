@@ -83,7 +83,7 @@ Enquanto um mecanismo está pendente, a regra correspondente é verificada na re
 ### Dados sensíveis e logs
 
 - **S21.** Nunca registar em log password, cookie, JWT, cabeçalho `Authorization` nem o corpo de pedidos de importação ou de perfil tributário. Erros 5xx registam o código do erro, não os valores. Nos erros do Prisma, cuja mensagem traz os argumentos da query, o filtro de erros regista só o nome, o código e o stack.
-- **S22.** Todo dado sensível novo tem finalidade descrita, papéis que o podem ler, prazo de retenção e decisão sobre auditoria. O `AuditLog` guarda ids e nomes de campos alterados, não os valores fiscais.
+- **S22.** Todo dado sensível novo tem finalidade descrita, papéis que o podem ler, prazo de retenção e decisão sobre auditoria. O `AuditLog` guarda ids e nomes de campos alterados, não os valores fiscais; os eventos, a retenção e o que fica de fora (IP, logins falhados) estão na D41.
 - **S23.** Seeds e testes usam só dados fictícios: emails em `.example`, nomes claramente inventados.
 
 ### Frontend

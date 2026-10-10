@@ -174,7 +174,10 @@ Acrescentar colegas ao escritório é a US17 (decisão D22).
 
 **Como** contador, **quero** comparar cenários (ex.: alterar a folha) **para** avaliar o impacto antes de aconselhar o cliente.
 
-- [ ] Uma simulação tem vários cenários com nomes distintos.
+- [ ] Uma simulação parte da "Situação atual" do perfil e tem até 5 cenários com nomes distintos, cada um a alterar a receita e/ou a folha (decisão D40).
+- [ ] Cada cenário mostra Fator R, anexo, alíquota efetiva, imposto anual estimado e a diferença para a situação atual; a anualização aparece como premissa e o resultado como estimativa (decisões D32 e D40).
+- [ ] Exige o perfil completo do Simples Nacional, com a elegibilidade confirmada; senão diz o que falta (decisão D40).
+- [ ] `ADMIN` e `ANALYST` criam; todos consultam; a simulação é imutável e reproduzível (decisão D40).
 - [ ] Os cenários usam o mesmo Tax Engine das análises.
 - [ ] Simular não altera o perfil tributário real da empresa.
 
@@ -184,11 +187,13 @@ Acrescentar colegas ao escritório é a US17 (decisão D22).
 
 - [ ] Lista por data (mais recente primeiro) com estado e versão da regra.
 - [ ] Análises antigas continuam a mostrar o resultado original, mesmo após nova versão da regra.
+- [ ] A ficha da empresa lista também as simulações (decisão D43).
 
 ### US16 — Consultar o registo de auditoria
 
 **Como** sócio, **quero** ver quem fez o quê e quando **para** ter rastreabilidade no escritório.
 
 - [ ] Registo apenas de inserção, filtrado pelo meu escritório.
-- [ ] Inclui login, alterações de empresas e perfis, importações, análises e simulações.
-- [ ] Apenas `ADMIN` consulta o registo.
+- [ ] Inclui registo, login, logout, alterações de utilizadores, empresas e perfis, importações, análises e simulações, com os campos alterados mas nunca os valores fiscais (decisão D41).
+- [ ] Lista do mais recente para o mais antigo, com filtros por período, utilizador e tipo de evento, na página `/audit` (decisão D42).
+- [ ] Apenas `ADMIN` consulta o registo: a secção não aparece aos outros papéis, e a rota e a API também a protegem (decisões D21 e D42).
