@@ -9,6 +9,7 @@ import {
   SIMPLES_FATOR_R_CODE,
   SIMPLES_FATOR_R_EVALUATOR,
 } from '../src/tax-rules/simples-fator-r.parameters';
+import { FATOR_R_V1 } from '../src/tax-calculations/simples-fator-r-v1.fixture';
 import { createTestPrisma } from './support/prisma';
 
 const { DRAFT, PUBLISHED, SUPERSEDED } = TaxRuleVersionStatus;
@@ -107,6 +108,8 @@ describe('Regras tributárias (e2e)', () => {
       const parameters = fatorRParametersSchema.parse(v1.parameters);
 
       expect(v1.checksum).toBe(parametersChecksum(v1.parameters));
+      // A fixture dos testes unitários do Tax Engine é igual ao banco.
+      expect(v1.parameters).toEqual(FATOR_R_V1);
       expect(parameters).toMatchObject({
         threshold: '0.28',
         opportunityMargin: '0.03',

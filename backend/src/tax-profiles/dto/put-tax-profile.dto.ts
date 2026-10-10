@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
+  registerDecorator,
   IsEnum,
   IsIn,
   IsOptional,
@@ -39,6 +40,28 @@ const ToMoneyString = () =>
     if (typeof value === 'string')
       return value.trim() === '' ? null : value.trim();
     return value;
+  });
+
+/** Mês atual em UTC, AAAA-MM. */
+function currentMonth(): string {
+  return new Date().toISOString().slice(0, 7);
+}
+
+/**
+ * Recusa um mês posterior ao atual (D29): os dados dos 12 meses anteriores
+ * ainda não existem. O mês atual em UTC é aceite, também quando no Brasil
+ * ainda é o último dia do mês anterior.
+ */
+const NotFutureMonth = () => (object: object, propertyName: string) =>
+  registerDecorator({
+    name: 'notFutureMonth',
+    target: object.constructor,
+    propertyName,
+    options: { message: 'O mês de referência não pode estar no futuro.' },
+    validator: {
+      validate: (value: unknown) =>
+        typeof value !== 'string' || value <= currentMonth(),
+    },
   });
 
 const UpperTrimToNull = () =>
@@ -109,7 +132,7 @@ export class PutTaxProfileDto {
   @ApiPropertyOptional({
     example: '2026-09',
     nullable: true,
-    description: 'Mês (AAAA-MM), de 1900 a 2099.',
+    description: 'Mês (AAAA-MM), de 1900 a 2099, nunca depois do mês atual.',
   })
   @IsOptional()
   @TrimToNull()
@@ -118,5 +141,6 @@ export class PutTaxProfileDto {
     message:
       'Informe o mês de referência no formato AAAA-MM, entre 1900 e 2099 (ex.: 2026-09).',
   })
+  @NotFutureMonth()
   referencePeriod?: string | null;
 }
